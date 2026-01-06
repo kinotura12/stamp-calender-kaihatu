@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 999,
+  "id": "ui_future_invalid",
+  "name": "Unsupported UI Theme",
+  "basePath": "https://cdn.example.com/ui/future/",
+  "cssVars": {
+    "--bg": "#123456",
+    "--surface-1": "#654321",
+    "--accent": "#ff00ff"
+  },
+  "assets": {
+    "headerBg": "header.png",
+    "bgPattern": "pattern.svg"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 999,
+  "id": "stamp_legacy_future",
+  "name": "Unsupported Stamp Theme",
+  "basePath": "https://cdn.example.com/stamps/legacy/",
+  "renderMode": "image-bg",
+  "stamps": [
+    { "mood": "mood_1", "label": "Mood A", "color": "#ffaaaa", "asset": "m1.png" },
+    { "mood": "mood_2", "label": "Mood B", "color": "#aaffaa", "asset": "m2.png" },
+    { "mood": "mood_3", "label": "Mood C", "color": "#aaaaff", "asset": "m3.png" },
+    { "mood": "mood_4", "label": "Mood D", "color": "#ffaaee", "asset": "m4.png" },
+    { "mood": "mood_5", "label": "Mood E", "color": "#aaffee", "asset": "m5.png" }
+  ]
+}

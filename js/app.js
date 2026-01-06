@@ -8,10 +8,14 @@
 
   // ===== Theme registries =====
   const STAMP_MOODS = ["mood_1","mood_2","mood_3","mood_4","mood_5"];
+  const STAMP_THEME_SUPPORTED_VERSIONS = [1];
+  const UI_THEME_SUPPORTED_VERSIONS = [1];
   const STAMP_THEMES = {
     default_dots: {
       id: "default_dots",
       name: "Color Dots",
+      schemaVersion: 1,
+      basePath: "",
       stamps: [
         { mood: "mood_1", label: "Mood 1", className: "pink", color: "#ff6fae" },
         { mood: "mood_2", label: "Mood 2", className: "orange", color: "#ff9a4a" },
@@ -19,13 +23,29 @@
         { mood: "mood_4", label: "Mood 4", className: "green", color: "#6ee38b" },
         { mood: "mood_5", label: "Mood 5", className: "blue", color: "#62c7ff" },
       ]
+    },
+    dark_moods: {
+      id: "dark_moods",
+      name: "Dark Moods",
+      schemaVersion: 1,
+      basePath: "",
+      stamps: [
+        { mood: "mood_1", label: "最高", color: "#6ad0f5", className: "mood-dark-1" },
+        { mood: "mood_2", label: "良い", color: "#4b7bec", className: "mood-dark-2" },
+        { mood: "mood_3", label: "普通", color: "#7c5be7", className: "mood-dark-3" },
+        { mood: "mood_4", label: "低め", color: "#cc5f9e", className: "mood-dark-4" },
+        { mood: "mood_5", label: "最低", color: "#7a8ba0", className: "mood-dark-5" },
+      ]
     }
     // 将来: ネコ系/季節系など追加
   };
+  const UI_ASSET_KEYS = ["headerBg","footerBg","bgPattern","iconSet"];
+
   const UI_THEMES = {
     ui_dark_default: {
       id: "ui_dark_default",
       name: "Default Dark",
+      schemaVersion: 1,
       cssVars: {
         "--bg":"#0f1115",
         "--surface-1":"#171a21",
@@ -84,6 +104,7 @@
     ui_light_default: {
       id: "ui_light_default",
       name: "Default Light",
+      schemaVersion: 1,
       cssVars: {
         "--bg":"#f5f6fb",
         "--surface-1":"#ffffff",
@@ -156,6 +177,16 @@
     green: "mood_4",
     blue: "mood_5"
   };
+
+  function resolveAssetUrl(basePath = "", assetUrl = ""){
+    if (!assetUrl) return "";
+    try{
+      const url = new URL(assetUrl, basePath || window.location.href);
+      return url.toString();
+    } catch {
+      return assetUrl;
+    }
+  }
 
   // UI theme token registry (fixed list; values change per theme)
   const UI_TOKEN_KEYS = [
@@ -239,6 +270,7 @@
   const closeThemePickerBtn = document.getElementById("closeThemePicker");
   const applyThemeBtn = document.getElementById("applyThemeBtn");
   let selectedUiThemeId = null;
+  let selectedStampThemeId = null;
 
   const hamburgerBtn = document.getElementById("hamburger");
   const menuOverlay = document.getElementById("menuOverlay");
@@ -348,22 +380,14 @@
   }
 
   function resolveStampTheme(themeId){
-    const base = STAMP_THEMES[DEFAULT_STAMP_THEME_ID];
-    const req = STAMP_THEMES[themeId] || base;
-    const byMood = new Map();
-    for (const mood of STAMP_MOODS){
-      // base -> requested override
-      const baseEntry = (base.stamps || []).find(s => s.mood === mood) || {};
-      const reqEntry = (req.stamps || []).find(s => s.mood === mood) || {};
-      byMood.set(mood, {
-        mood,
-        label: reqEntry.label || baseEntry.label || mood,
-        className: reqEntry.className || baseEntry.className || null,
-        color: reqEntry.color || baseEntry.color || null,
-        asset: reqEntry.asset || baseEntry.asset || null
-      });
-    }
-    return { id: req.id || DEFAULT_STAMP_THEME_ID, byMood };
+    const base = normalizeStampThemeDef(STAMP_THEMES[DEFAULT_STAMP_THEME_ID]);
+    const raw = STAMP_THEMES[themeId] || base;
+    const normalized = normalizeStampThemeDef(raw);
+    return {
+      id: normalized.id || DEFAULT_STAMP_THEME_ID,
+      basePath: normalized.basePath || "",
+      byMood: normalized.byMood
+    };
   }
 
   function getStampThemeIdForMonth(yyyyMm){
@@ -373,35 +397,41 @@
   }
 
   function applyStampTheme(themeId){
-    const { id, byMood } = resolveStampTheme(themeId || settings.stampThemeId);
+    const { id, byMood, basePath } = resolveStampTheme(themeId || settings.stampThemeId);
     settings.stampThemeId = id;
-    resolvedStampTheme = { id, byMood };
+    resolvedStampTheme = { id, byMood, basePath };
     renderStampPickerButtons();
   }
 
   function resolveUiTheme(themeId){
-    const fallbackVars = sanitizeThemeVars(UI_THEMES[DEFAULT_UI_THEME_ID]?.cssVars || {});
+    const raw = UI_THEMES[themeId];
+    const base = normalizeUiTheme(UI_THEMES[DEFAULT_UI_THEME_ID]);
+    const targetId = (raw && UI_THEME_SUPPORTED_VERSIONS.includes(raw.schemaVersion || 1)) ? themeId : DEFAULT_UI_THEME_ID;
     const chain = [];
     const visited = new Set();
-    let curId = UI_THEMES[themeId] ? themeId : DEFAULT_UI_THEME_ID;
+    let curId = UI_THEMES[targetId] ? targetId : DEFAULT_UI_THEME_ID;
     while (curId && UI_THEMES[curId] && !visited.has(curId)){
-      const t = UI_THEMES[curId];
+      const t = normalizeUiTheme(UI_THEMES[curId]);
       chain.unshift(t); // 親を前にしたくて unshift
       visited.add(curId);
-      if (t.extends && UI_THEMES[t.extends]){
-        curId = t.extends;
+      if (UI_THEMES[curId]?.extends && UI_THEMES[UI_THEMES[curId].extends]){
+        curId = UI_THEMES[curId].extends;
       } else {
         break;
       }
     }
 
-    let tokens = { ...fallbackVars };
+    let tokens = { ...base.tokens };
+    let assets = { ...base.assets };
+    let basePath = base.basePath || "";
     for (const t of chain){
-      tokens = sanitizeThemeVars(t.cssVars || {}, tokens);
+      tokens = sanitizeThemeVars(t.tokens || {}, tokens);
+      assets = { ...assets, ...(t.assets || {}) };
+      if (t.basePath) basePath = t.basePath;
     }
 
-    const resolvedId = UI_THEMES[themeId] ? themeId : DEFAULT_UI_THEME_ID;
-    return { id: resolvedId, tokens };
+    const resolvedId = targetId || DEFAULT_UI_THEME_ID;
+    return { id: resolvedId, tokens, assets, basePath };
   }
 
   function applyThemeTokens(themeId, targetEl = document.documentElement, options = {}){
@@ -452,6 +482,36 @@
     if (STAMP_MOODS.includes(stampId)) return stampId;
     if (LEGACY_STAMP_ID_MAP[stampId]) return LEGACY_STAMP_ID_MAP[stampId];
     return null;
+  }
+
+  function normalizeStampThemeDef(def){
+    const base = STAMP_THEMES[DEFAULT_STAMP_THEME_ID];
+    const schema = def?.schemaVersion;
+    if (!STAMP_THEME_SUPPORTED_VERSIONS.includes(schema || 1)){
+      return { ...base, id: base.id, name: base.name, schemaVersion: base.schemaVersion, basePath: base.basePath };
+    }
+    const byMood = new Map();
+    const entries = Array.isArray(def?.stamps) ? def.stamps : [];
+    for (const mood of STAMP_MOODS){
+      const fromDef = entries.find(s => s?.mood === mood) || {};
+      const fromBase = (base.stamps || []).find(s => s.mood === mood) || {};
+      byMood.set(mood, {
+        mood,
+        label: fromDef.label || fromBase.label || mood,
+        className: fromDef.className || fromBase.className || null,
+        color: fromDef.color || fromBase.color || null,
+        asset: fromDef.asset || fromBase.asset || null,
+        renderMode: fromDef.renderMode || fromBase.renderMode || "color",
+        shape: fromDef.shape || fromBase.shape || "circle"
+      });
+    }
+    return {
+      id: def?.id || base.id,
+      name: def?.name || base.name,
+      schemaVersion: def?.schemaVersion || base.schemaVersion || 1,
+      basePath: typeof def?.basePath === "string" ? def.basePath : base.basePath || "",
+      byMood
+    };
   }
 
   function ensureDay(dateKey){
@@ -656,18 +716,14 @@
       const entry = map.get(mood) || { label: mood };
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "pick";
-      if (entry.className) b.classList.add(entry.className);
-      if (entry.color) b.style.background = entry.color;
       b.dataset.stamp = mood;
       b.setAttribute("aria-label", entry.label || mood);
+      applyStampVisual(b, mood, "pick");
       row.appendChild(b);
     }
     if (miniDot){
       const first = map.get(STAMP_MOODS[0]);
-      miniDot.style.background = first?.color || "";
-      miniDot.className = "miniDot";
-      if (first?.className) miniDot.classList.add(first.className);
+      applyStampVisual(miniDot, STAMP_MOODS[0], "miniDot");
     }
   }
 
@@ -684,16 +740,101 @@
     return entry?.color || null;
   }
 
+  function applyStampVisualFromEntry(el, entry, baseClass, basePath = ""){
+    el.className = baseClass;
+    el.style.backgroundColor = "";
+    el.style.backgroundImage = "";
+    el.style.backgroundSize = "";
+    el.style.backgroundRepeat = "";
+    el.style.backgroundPosition = "";
+    const oldImg = el.querySelector(".stampImg");
+    if (oldImg) oldImg.remove();
+    if (!entry) return;
+    const cls = entry.className;
+    const col = entry.color;
+    const shape = entry.shape || "circle";
+    const assetUrl = entry.asset ? resolveAssetUrl(basePath, entry.asset) : "";
+    const mode = entry.renderMode || "color";
+    if (cls) el.classList.add(cls);
+    if (shape) el.classList.add(`shape-${shape}`);
+
+    if (mode === "img-tag" && assetUrl){
+      const img = document.createElement("img");
+      img.className = "stampImg";
+      img.decoding = "async";
+      img.loading = "lazy";
+      img.src = assetUrl;
+      el.appendChild(img);
+      el.classList.add("filled");
+      return;
+    }
+    if (mode === "image-bg" && assetUrl){
+      el.style.backgroundImage = `url("${assetUrl}")`;
+      el.style.backgroundSize = "contain";
+      el.style.backgroundRepeat = "no-repeat";
+      el.style.backgroundPosition = "center";
+      el.classList.add("filled");
+      return;
+    }
+    if (col){
+      el.style.backgroundColor = col;
+      el.classList.add("filled");
+    } else if (cls){
+      el.classList.add("filled");
+    }
+  }
+
   function applyStampVisual(el, stampId, baseClass){
     el.className = baseClass;
     el.style.backgroundColor = "";
+    el.style.backgroundImage = "";
+    el.style.backgroundSize = "";
+    el.style.backgroundRepeat = "";
+    el.style.backgroundPosition = "";
+    // remove existing img-tag if any
+    const oldImg = el.querySelector(".stampImg");
+    if (oldImg) oldImg.remove();
+
     const mood = normalizeStampId(stampId);
     if (!mood) return;
-    const cls = classForStampId(mood);
-    const col = colorForStampId(mood);
-    if (cls) el.classList.add("filled", cls);
+
+    const entry = getStampEntry(mood);
+    if (!entry) return;
+
+    const cls = entry.className;
+    const col = entry.color;
+    const shape = entry.shape || "circle";
+    const assetUrl = entry.asset ? resolveAssetUrl(resolvedStampTheme.basePath, entry.asset) : "";
+    const mode = entry.renderMode || "color";
+
+    if (cls) el.classList.add(cls);
+    if (shape) el.classList.add(`shape-${shape}`);
+
+    if (mode === "img-tag" && assetUrl){
+      const img = document.createElement("img");
+      img.className = "stampImg";
+      img.decoding = "async";
+      img.loading = "lazy";
+      img.src = assetUrl;
+      el.appendChild(img);
+      el.classList.add("filled");
+      return;
+    }
+
+    if (mode === "image-bg" && assetUrl){
+      el.style.backgroundImage = `url("${assetUrl}")`;
+      el.style.backgroundSize = "contain";
+      el.style.backgroundRepeat = "no-repeat";
+      el.style.backgroundPosition = "center";
+      el.classList.add("filled");
+      return;
+    }
+
+    // fallback: color
     if (col){
       el.style.backgroundColor = col;
+      el.classList.add("filled");
+    } else if (cls){
       el.classList.add("filled");
     }
   }
@@ -795,10 +936,7 @@
         dot.className = "dot";
         dot.setAttribute("aria-label", `${key} スタンプ`);
 
-        const cls = classForStampId(state[key].stampId);
-        const col = colorForStampId(state[key].stampId);
-        if (cls) dot.classList.add("filled", cls);
-        if (col) dot.style.background = col;
+        applyStampVisual(dot, state[key].stampId, "dot");
 
         dot.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -1345,6 +1483,7 @@
   // ===== UI Theme Picker =====
   function showThemePicker(){
     selectedUiThemeId = null;
+    selectedStampThemeId = null;
     renderThemeGrid();
     themeOverlay.classList.add("show");
     themePanel.classList.add("show");
@@ -1365,10 +1504,28 @@
     return out;
   }
 
+  function normalizeUiTheme(raw){
+    const base = UI_THEMES[DEFAULT_UI_THEME_ID];
+    const schema = raw?.schemaVersion || 1;
+    if (!raw || !UI_THEME_SUPPORTED_VERSIONS.includes(schema)) return { id: DEFAULT_UI_THEME_ID, tokens: base.cssVars || {}, assets: {}, basePath: "" };
+    const tokens = sanitizeThemeVars(raw.cssVars || {}, base.cssVars || {});
+    const assets = {};
+    for (const k of UI_ASSET_KEYS){
+      if (raw.assets && typeof raw.assets[k] === "string") assets[k] = raw.assets[k];
+    }
+    const basePath = typeof raw.basePath === "string" ? raw.basePath : "";
+    return { id: raw.id || DEFAULT_UI_THEME_ID, tokens, assets, basePath };
+  }
+
   function renderThemeGrid(){
     themeGrid.innerHTML = "";
-    const entries = Object.values(UI_THEMES);
-    for (const t of entries){
+    const uiTitle = document.createElement("div");
+    uiTitle.className = "themeSectionTitle";
+    uiTitle.textContent = "デフォルトデザインテーマ";
+    themeGrid.appendChild(uiTitle);
+
+    const uiEntries = Object.values(UI_THEMES);
+    for (const t of uiEntries){
       const card = document.createElement("div");
       card.className = "themeCard" + (t.id === selectedUiThemeId ? " selected" : "");
 
@@ -1434,12 +1591,9 @@
 
       const moodRow = document.createElement("div");
       moodRow.className = "thumbMoodRow";
-      STAMP_MOODS.forEach((mood, idx) => {
-        const c = ["pink","orange","yellow","green","blue"][idx] || "";
+      STAMP_MOODS.forEach((mood) => {
         const dot = document.createElement("div");
-        dot.className = "thumbMoodDot " + c;
-        const entry = getStampEntry(mood);
-        if (entry?.color) dot.style.background = entry.color;
+        applyStampVisual(dot, mood, "thumbMoodDot");
         moodRow.appendChild(dot);
       });
 
@@ -1494,13 +1648,55 @@
 
       card.addEventListener("click", () => {
         selectedUiThemeId = t.id;
-        applyThemeBtn.classList.toggle("themeApplyActive", !!selectedUiThemeId);
+        applyThemeBtn.classList.toggle("themeApplyActive", !!(selectedUiThemeId || selectedStampThemeId));
         renderThemeGrid();
       });
 
       themeGrid.appendChild(card);
     }
-    applyThemeBtn.classList.toggle("themeApplyActive", !!selectedUiThemeId);
+
+    // stamp themes
+    const stampTitle = document.createElement("div");
+    stampTitle.className = "themeSectionTitle";
+    stampTitle.textContent = "デフォルトスタンプテーマ";
+    themeGrid.appendChild(stampTitle);
+
+    const stampEntries = Object.values(STAMP_THEMES);
+    for (const t of stampEntries){
+      const card = document.createElement("div");
+      card.className = "stampCard" + (t.id === selectedStampThemeId ? " selected" : "");
+
+      const thumb = document.createElement("div");
+      thumb.className = "stampThumb";
+
+      const dotsRow = document.createElement("div");
+      dotsRow.className = "stampDotsRow";
+      const normalized = normalizeStampThemeDef(t);
+      STAMP_MOODS.forEach((mood) => {
+        const dot = document.createElement("div");
+        const entry = normalized.byMood.get(mood);
+        applyStampVisualFromEntry(dot, entry, "stampPreviewDot", normalized.basePath);
+        dotsRow.appendChild(dot);
+      });
+      thumb.appendChild(dotsRow);
+
+      const name = document.createElement("div");
+      name.className = "themeName";
+      name.textContent = t.name || t.id;
+
+      card.appendChild(thumb);
+      card.appendChild(name);
+
+      card.addEventListener("click", () => {
+        selectedStampThemeId = t.id;
+        applyThemeBtn.classList.toggle("themeApplyActive", !!(selectedUiThemeId || selectedStampThemeId));
+        renderThemeGrid();
+      });
+
+      themeGrid.appendChild(card);
+    }
+
+    applyThemeBtn.classList.toggle("themeApplyActive", !!(selectedUiThemeId || selectedStampThemeId));
   }
 
   openThemePickerBtn.addEventListener("click", () => {
@@ -1510,10 +1706,23 @@
   });
   closeThemePickerBtn.addEventListener("click", hideThemePicker);
   applyThemeBtn.addEventListener("click", () => {
-    if (!selectedUiThemeId) return;
-    settings.uiThemeId = validUiThemeId(selectedUiThemeId);
+    if (!selectedUiThemeId && !selectedStampThemeId) return;
+    if (selectedUiThemeId){
+      settings.uiThemeId = validUiThemeId(selectedUiThemeId);
+      applyUiTheme(settings.uiThemeId);
+    }
+    if (selectedStampThemeId){
+      settings.stampThemeId = validStampThemeId(selectedStampThemeId);
+      applyStampTheme(settings.stampThemeId);
+    }
     saveSettings(settings);
-    applyUiTheme(settings.uiThemeId);
+    renderCalendar();
+    if (selectedDate){
+      renderDiaryBlocks();
+      setDiaryStampFromDate(selectedDate);
+    }
+    if (viewMode === "list") renderList();
+    if (viewMode === "data") renderYearStats();
     hideThemePicker();
   });
 
@@ -1694,16 +1903,28 @@
 
   bulkImportBtn.addEventListener("click", async () => {
     const file = bulkImportFile.files && bulkImportFile.files[0];
-    if (!file) return;
+    if (!file){
+      window.alert("読み込みファイルを選択してください。");
+      return;
+    }
 
     let text = "";
-    try { text = await file.text(); } catch { return; }
+    try { text = await file.text(); } catch {
+      window.alert("ファイルの読み取りに失敗しました。");
+      return;
+    }
 
     let payload = null;
-    try { payload = JSON.parse(text); } catch { return; }
+    try { payload = JSON.parse(text); } catch {
+      window.alert("JSONの解析に失敗しました。");
+      return;
+    }
 
     const monthsObj = payload?.months && typeof payload.months === "object" ? payload.months : null;
-    if (!monthsObj) return;
+    if (!monthsObj){
+      window.alert("有効な月データが含まれていません。");
+      return;
+    }
 
     const ok = window.confirm("データ読み込みを実行しますか？\n（データがある月のみ上書きされます）");
     if (!ok) return;
@@ -1749,6 +1970,7 @@
     renderCalendar();
     if (viewMode === "list") renderList();
     if (viewMode === "data") renderYearStats();
+    window.alert("データの読み込みが完了しました。");
   });
 
   resetAllBtn.addEventListener("click", () => {
