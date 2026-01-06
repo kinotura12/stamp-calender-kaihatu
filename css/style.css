@@ -487,14 +487,15 @@
       position: relative;
       padding-right: 34px;
     }
-    .todoRow input[type="checkbox"]{
+    .todoRow input[type="checkbox"],
+    .switch input[type="checkbox"]{
       width: 20px;
       height: 20px;
       flex: 0 0 auto;
       appearance: none;
       -webkit-appearance: none;
       border-radius: 6px;
-      border: 1.5px solid rgba(255,255,255,.35);
+      border: 1.5px solid rgba(255,255,255,.32);
       background: rgba(255,255,255,.02);
       box-shadow: 0 2px 6px rgba(0,0,0,.25);
       display: inline-block;
@@ -502,25 +503,28 @@
       cursor: pointer;
       transition: background .12s ease, border-color .12s ease, box-shadow .12s ease;
     }
-    .todoRow input[type="checkbox"]::after{
+    .todoRow input[type="checkbox"]::after,
+    .switch input[type="checkbox"]::after{
       content: "";
       position: absolute;
       left: 5px;
       top: 2px;
       width: 6px;
       height: 10px;
-      border: solid rgba(23,26,33,.95);
+      border: solid rgba(255,255,255,.98);
       border-width: 0 2px 2px 0;
       transform: rotate(45deg) scale(0);
       transform-origin: center;
       transition: transform .12s ease;
     }
-    .todoRow input[type="checkbox"]:checked{
-      background: linear-gradient(180deg, rgba(110,227,139,.95), rgba(110,227,139,.75));
-      border-color: rgba(110,227,139,.9);
+    .todoRow input[type="checkbox"]:checked,
+    .switch input[type="checkbox"]:checked{
+      background: linear-gradient(180deg, rgba(64,123,221,.96), rgba(64,123,221,.80));
+      border-color: rgba(64,123,221,.96);
       box-shadow: 0 4px 10px rgba(0,0,0,.35);
     }
-    .todoRow input[type="checkbox"]:checked::after{
+    .todoRow input[type="checkbox"]:checked::after,
+    .switch input[type="checkbox"]:checked::after{
       transform: rotate(45deg) scale(1);
     }
     .todoRow input.todoText{
@@ -684,15 +688,18 @@
       width: 14px;
       height: 14px;
       border-radius: 4px;
-      border: 1.5px solid rgba(255,255,255,.28);
+      border: 1.5px solid rgba(255,255,255,.32);
       background: rgba(255,255,255,.02);
       margin-right: 6px;
       vertical-align: -2px;
       position: relative;
     }
+    .checkIcon.todo{
+      border-color: rgba(255,255,255,.32);
+    }
     .checkIcon.done{
-      border-color: rgba(110,227,139,.9);
-      background: linear-gradient(180deg, rgba(110,227,139,.9), rgba(110,227,139,.75));
+      border-color: rgba(64,123,221,.96);
+      background: linear-gradient(180deg, rgba(64,123,221,.96), rgba(64,123,221,.80));
       box-shadow: 0 4px 10px rgba(0,0,0,.35);
     }
     .checkIcon.done::after{
@@ -702,7 +709,7 @@
       top: 1px;
       width: 5px;
       height: 9px;
-      border: solid rgba(23,26,33,.95);
+      border: solid rgba(255,255,255,.98);
       border-width: 0 2px 2px 0;
       transform: rotate(45deg);
     }
