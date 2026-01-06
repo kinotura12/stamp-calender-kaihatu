@@ -27,18 +27,57 @@
       name: "Default Dark",
       cssVars: {
         "--bg":"#0f1115",
-        "--panel":"#171a21",
+        "--surface-1":"#171a21",
+        "--surface-2":"#1c2028",
+        "--surface-3":"rgba(255,255,255,.03)",
+        "--border-subtle":"rgba(255,255,255,.06)",
+        "--border-strong":"rgba(255,255,255,.12)",
         "--text":"#e8ecf3",
         "--muted":"#a9b2c3",
-        "--card":"rgba(255,255,255,.04)",
-        "--card2":"rgba(255,255,255,.03)",
-        "--shadow":"0 12px 30px rgba(0,0,0,.35)",
+        "--text-strong":"#e8ecf3",
+        "--text-normal":"#d8dde6",
+        "--text-muted":"#a9b2c3",
+        "--text-mini":"#8f9ab1",
+        "--shadow-sm":"0 4px 10px rgba(0,0,0,.25)",
+        "--shadow-md":"0 12px 30px rgba(0,0,0,.35)",
+        "--shadow-lg":"0 18px 44px rgba(0,0,0,.5)",
+        "--shadow-card":"0 12px 30px rgba(0,0,0,.35)",
+        "--shadow-popover":"0 18px 44px rgba(0,0,0,.5)",
+        "--input-bg":"rgba(0,0,0,.18)",
+        "--input-border":"rgba(255,255,255,.10)",
+        "--input-shadow":"0 4px 10px rgba(0,0,0,.25)",
+        "--box-bg":"rgba(0,0,0,.18)",
+        "--box-border":"rgba(255,255,255,.10)",
+        "--box-shadow":"0 4px 10px rgba(0,0,0,.25)",
+        "--btn-bg":"rgba(255,255,255,.06)",
+        "--btn-fg":"#e8ecf3",
+        "--btn-border":"rgba(255,255,255,.12)",
+        "--btn-shadow":"0 4px 10px rgba(0,0,0,.25)",
+        "--btn-danger-bg":"rgba(255,120,120,.12)",
+        "--btn-danger-border":"rgba(255,140,140,.25)",
+        "--btn-danger-fg":"#ffc8c8",
+        "--btn-danger-shadow":"0 4px 10px rgba(0,0,0,.25)",
+        "--pill-bg":"rgba(255,255,255,.06)",
+        "--pill-border":"rgba(255,255,255,.12)",
+        "--pill-fg":"rgba(232,236,243,.85)",
+        "--accent":"#62c7ff",
+        "--accent-2":"#ff6fae",
+        "--success":"#6ee38b",
+        "--warning":"#ffd55a",
+        "--danger":"#ff6b6b",
+        "--info":"#4a9ded",
+        "--link":"#4a9ded",
         "--ring":"rgba(255,255,255,.16)",
         "--pink":"#ff6fae",
         "--orange":"#ff9a4a",
         "--yellow":"#ffd55a",
         "--green":"#6ee38b",
-        "--blue":"#62c7ff"
+        "--blue":"#62c7ff",
+        "--panel":"#171a21",
+        "--card":"#1c2028",
+        "--card2":"rgba(255,255,255,.03)",
+        "--card-border":"rgba(255,255,255,.06)",
+        "--card-shadow":"0 12px 30px rgba(0,0,0,.35)"
       }
     },
     ui_light_default: {
@@ -46,18 +85,57 @@
       name: "Default Light",
       cssVars: {
         "--bg":"#f5f6fb",
-        "--panel":"#ffffff",
+        "--surface-1":"#ffffff",
+        "--surface-2":"#ffffff",
+        "--surface-3":"rgba(0,0,0,.02)",
+        "--border-subtle":"rgba(0,0,0,.08)",
+        "--border-strong":"rgba(0,0,0,.15)",
         "--text":"#1d2433",
         "--muted":"#63708a",
-        "--card":"#ffffff",
-        "--card2":"rgba(0,0,0,.02)",
-        "--shadow":"0 8px 20px rgba(0,0,0,.08)",
+        "--text-strong":"#1d2433",
+        "--text-normal":"#2d3342",
+        "--text-muted":"#63708a",
+        "--text-mini":"#7a869c",
+        "--shadow-sm":"0 4px 10px rgba(0,0,0,.08)",
+        "--shadow-md":"0 8px 20px rgba(0,0,0,.08)",
+        "--shadow-lg":"0 12px 26px rgba(0,0,0,.14)",
+        "--shadow-card":"0 8px 20px rgba(0,0,0,.08)",
+        "--shadow-popover":"0 12px 26px rgba(0,0,0,.14)",
+        "--input-bg":"#ffffff",
+        "--input-border":"rgba(0,0,0,.08)",
+        "--input-shadow":"0 4px 10px rgba(0,0,0,.08)",
+        "--box-bg":"#ffffff",
+        "--box-border":"rgba(0,0,0,.08)",
+        "--box-shadow":"0 4px 10px rgba(0,0,0,.08)",
+        "--btn-bg":"#f3f7fb",
+        "--btn-fg":"#3a4558",
+        "--btn-border":"rgba(0,0,0,.08)",
+        "--btn-shadow":"0 4px 10px rgba(0,0,0,.08)",
+        "--btn-danger-bg":"#ffe8e8",
+        "--btn-danger-border":"rgba(220,70,70,.25)",
+        "--btn-danger-fg":"#b03030",
+        "--btn-danger-shadow":"0 4px 10px rgba(0,0,0,.12)",
+        "--pill-bg":"rgba(58,69,88,.06)",
+        "--pill-border":"rgba(58,69,88,.15)",
+        "--pill-fg":"rgba(58,69,88,.85)",
+        "--accent":"#4a9ded",
+        "--accent-2":"#e0569c",
+        "--success":"#46b86f",
+        "--warning":"#e9ba3c",
+        "--danger":"#e06b6b",
+        "--info":"#4a9ded",
+        "--link":"#4a9ded",
         "--ring":"rgba(0,0,0,.08)",
         "--pink":"#e0569c",
         "--orange":"#ff8a3c",
         "--yellow":"#e9ba3c",
         "--green":"#46b86f",
-        "--blue":"#4a9ded"
+        "--blue":"#4a9ded",
+        "--panel":"#ffffff",
+        "--card":"#ffffff",
+        "--card2":"rgba(0,0,0,.02)",
+        "--card-border":"rgba(0,0,0,.08)",
+        "--card-shadow":"0 8px 20px rgba(0,0,0,.08)"
       }
     }
     // 将来: ui_light_default, ui_pastel など追加
@@ -1103,10 +1181,11 @@
 
   // ===== UI Theme Picker =====
   function showThemePicker(){
-    selectedUiThemeId = settings.uiThemeId || DEFAULT_UI_THEME_ID;
+    selectedUiThemeId = null;
     renderThemeGrid();
     themeOverlay.classList.add("show");
     themePanel.classList.add("show");
+    applyThemeBtn.classList.remove("themeApplyActive");
   }
   function hideThemePicker(){
     themeOverlay.classList.remove("show");
@@ -1131,12 +1210,91 @@
       const thumb = document.createElement("div");
       thumb.className = "themeThumb";
       const vars = themePreviewVars(t.id);
-      thumb.style.background = vars["--panel"] ? vars["--panel"] : thumb.style.background;
-      thumb.style.color = vars["--text"] || "inherit";
-      const b1 = document.createElement("div"); b1.className = "bar";
-      const b2 = document.createElement("div"); b2.className = "bar";
-      const b3 = document.createElement("div"); b3.className = "bar";
-      thumb.appendChild(b1); thumb.appendChild(b2); thumb.appendChild(b3);
+      const cardBg = vars["--card"] || thumb.style.background;
+      const cardBorder = vars["--card-border"] || "rgba(255,255,255,.08)";
+      const panelBg = vars["--panel"] || cardBg;
+      const card2 = vars["--card2"] || cardBg;
+      const textNorm = vars["--text-normal"] || vars["--text-strong"] || "inherit";
+      const textMuted = vars["--text-muted"] || textNorm;
+      const btnBg = vars["--btn-bg"] || vars["--card2"] || cardBg;
+      const btnBorder = vars["--btn-border"] || "transparent";
+      const btnShadow = vars["--btn-shadow"] || "";
+      const accent = vars["--accent"] || vars["--blue"] || "rgba(98,199,255,.75)";
+
+      card.style.background = cardBg;
+      card.style.borderColor = cardBorder;
+      if (vars["--card-shadow"]) card.style.boxShadow = vars["--card-shadow"];
+
+      thumb.style.background = cardBg;
+      thumb.style.borderColor = cardBorder;
+
+      const header = document.createElement("div");
+      header.className = "thumbHeader";
+      header.style.background = panelBg;
+
+      const body = document.createElement("div");
+      body.className = "thumbBody";
+
+      const sidebar = document.createElement("div");
+      sidebar.className = "thumbSidebar";
+      sidebar.style.background = card2;
+      sidebar.style.boxShadow = `inset 0 0 0 1px ${cardBorder}`;
+
+      const content = document.createElement("div");
+      content.className = "thumbContent";
+      content.style.background = cardBg;
+      content.style.boxShadow = `inset 0 0 0 1px ${cardBorder}`;
+
+      const miniCal = document.createElement("div");
+      miniCal.className = "thumbMiniCal";
+      for (let i=0;i<7;i++){
+        const cell = document.createElement("div");
+        cell.className = "calCell" + (i===3 ? " accent" : "");
+        cell.style.background = card2;
+        if (cell.classList.contains("accent")){
+          cell.style.background = accent;
+          cell.style.boxShadow = "0 2px 6px rgba(0,0,0,.2)";
+        }
+        miniCal.appendChild(cell);
+      }
+
+      const r1 = document.createElement("div"); r1.className = "thumbRow long"; r1.style.background = textMuted;
+      const r2 = document.createElement("div"); r2.className = "thumbRow"; r2.style.background = textNorm;
+      const r3 = document.createElement("div"); r3.className = "thumbRow short"; r3.style.background = textMuted;
+
+      const diary = document.createElement("div");
+      diary.className = "thumbDiary";
+      const stamp = document.createElement("div");
+      stamp.className = "thumbStamp";
+      stamp.style.background = accent;
+      const diaryLines = document.createElement("div");
+      diaryLines.className = "thumbDiaryLines";
+      const dl1 = document.createElement("div"); dl1.className = "line";
+      const dl2 = document.createElement("div"); dl2.className = "line short";
+      dl1.style.background = textNorm;
+      dl2.style.background = textMuted;
+      diaryLines.appendChild(dl1);
+      diaryLines.appendChild(dl2);
+      diary.appendChild(stamp);
+      diary.appendChild(diaryLines);
+
+      const btnSample = document.createElement("div"); btnSample.className = "thumbBtn";
+      btnSample.style.background = btnBg;
+      btnSample.style.boxShadow = btnShadow;
+      btnSample.style.border = `1px solid ${btnBorder}`;
+
+      content.appendChild(miniCal);
+      content.appendChild(r1);
+      content.appendChild(r2);
+      content.appendChild(r3);
+      content.appendChild(diary);
+      content.appendChild(btnSample);
+
+      body.appendChild(sidebar);
+      body.appendChild(content);
+
+      thumb.appendChild(header);
+      thumb.appendChild(body);
 
       const name = document.createElement("div");
       name.className = "themeName";
@@ -1147,11 +1305,13 @@
 
       card.addEventListener("click", () => {
         selectedUiThemeId = t.id;
+        applyThemeBtn.classList.toggle("themeApplyActive", !!selectedUiThemeId);
         renderThemeGrid();
       });
 
       themeGrid.appendChild(card);
     }
+    applyThemeBtn.classList.toggle("themeApplyActive", !!selectedUiThemeId);
   }
 
   openThemePickerBtn.addEventListener("click", () => {
@@ -1161,6 +1321,7 @@
   });
   closeThemePickerBtn.addEventListener("click", hideThemePicker);
   applyThemeBtn.addEventListener("click", () => {
+    if (!selectedUiThemeId) return;
     settings.uiThemeId = validUiThemeId(selectedUiThemeId);
     saveSettings(settings);
     applyUiTheme(settings.uiThemeId);
