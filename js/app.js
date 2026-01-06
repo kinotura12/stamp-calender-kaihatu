@@ -76,6 +76,7 @@
   const bulkImportFile = document.getElementById("bulkImportFile");
   const bulkImportBtn = document.getElementById("bulkImportBtn");
   const resetAllBtn = document.getElementById("resetAllBtn");
+  const resetAppBtn = document.getElementById("resetAppBtn");
 
   const pickerEl = document.getElementById("picker");
   const caretEl = document.getElementById("caret");
@@ -88,15 +89,11 @@
   const menuDataBtn = document.getElementById("menuData");
 
   // storage
-  function storageKey(month){
-    return `sticker-cal:${YEAR}-${String(month).padStart(2,'0')}`;
-  }
   function loadStateForMonth(month){
-    try { return JSON.parse(localStorage.getItem(storageKey(month)) || "{}"); }
-    catch { return {}; }
+    return window.storageApi.loadMonthData(month) || {};
   }
   function saveStateForMonth(month, obj){
-    localStorage.setItem(storageKey(month), JSON.stringify(obj));
+    window.storageApi.saveMonthData(month, obj);
   }
 
   // state
@@ -109,7 +106,6 @@
   let breakdownOpen = false;
 
   // settings (theme + diary layout)
-  const SETTINGS_KEY = `sticker-cal:settings:${YEAR}`;
 
   function uid(){
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
@@ -127,7 +123,7 @@
 
   function loadSettings(){
     try {
-      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+      const s = window.storageApi.loadSettings();
       const stampThemeId = (typeof s.stampThemeId === "string") ? s.stampThemeId : DEFAULT_THEME_ID;
       const diaryLayout = Array.isArray(s.diaryLayout) ? s.diaryLayout : defaultDiaryLayout();
       return { stampThemeId, diaryLayout };
@@ -136,7 +132,7 @@
     }
   }
   function saveSettings(obj){
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(obj));
+    window.storageApi.saveSettings(obj);
   }
   let settings = loadSettings();
 
@@ -1228,11 +1224,26 @@
     const ok = window.confirm("本当に削除しますか？\n（全ての月データが削除されます。）");
     if (!ok) return;
 
-    for (let m=MIN_MONTH; m<=MAX_MONTH; m++){
-      localStorage.removeItem(storageKey(m));
-    }
+    window.storageApi.clearAllMonths();
 
     state = loadStateForMonth(currentMonth);
+    selectedDate = null;
+    diaryWrap.style.display = "none";
+    hidePicker();
+    hideInlineConfirm();
+    renderCalendar();
+    if (viewMode === "list") renderList();
+    if (viewMode === "data") renderYearStats();
+  });
+
+  resetAppBtn.addEventListener("click", () => {
+    const ok = window.confirm("アプリを初期化しますか？\n（全ての月データと設定が削除されます。）");
+    if (!ok) return;
+
+    window.storageApi.resetAll();
+
+    state = loadStateForMonth(currentMonth);
+    settings = loadSettings();
     selectedDate = null;
     diaryWrap.style.display = "none";
     hidePicker();
