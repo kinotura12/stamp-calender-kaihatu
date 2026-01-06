@@ -24,6 +24,9 @@
       </div>
 
       <div class="rightBar">
+        <button class="iconBtn" id="openThemePicker" type="button" aria-label="デザインテーマ">
+          🎨
+        </button>
         <button class="hamburger" id="hamburger" type="button" aria-label="メニュー">
           <span></span><span></span><span></span>
         </button>
@@ -213,6 +216,23 @@
   <button class="menuItem" id="menuData" type="button">
     <span>データ管理</span><span class="badge">書き出し/読込</span>
   </button>
+</div>
+
+<!-- デザインテーマ選択 -->
+<div class="themeOverlay" id="themeOverlay"></div>
+<div class="themePanel" id="themePanel" role="dialog" aria-label="デザインテーマ選択">
+  <div class="themeHead">
+    <div>
+      <div class="themeTitle">デザインテーマ選択</div>
+      <div class="themeSub">UIデザインを選んで「適用」で反映</div>
+    </div>
+    <button class="iconBtn" id="closeThemePicker" type="button" aria-label="閉じる">×</button>
+  </div>
+  <div class="themeGrid" id="themeGrid"></div>
+  <div class="themeFooter">
+    <button class="ghostBtn" id="cancelTheme" type="button">キャンセル</button>
+    <button class="btn" id="applyThemeBtn" type="button">適用</button>
+  </div>
 </div>
 
   <script src="./js/storage.js" defer></script>

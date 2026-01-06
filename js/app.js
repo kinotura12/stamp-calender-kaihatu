@@ -6,7 +6,7 @@
   const MAX_MONTH = 12;
   const APP_VERSION = "1.4.0";
 
-  // ===== Stamp Master (Theme-ready, 5 colors) =====
+  // ===== Theme registries =====
   const STAMP_THEMES = {
     default_dots: {
       id: "default_dots",
@@ -19,8 +19,52 @@
         { id: "dot_blue",   label: "Color Dot Light Blue", className: "blue" },
       ]
     }
+    // 将来: ネコ系/季節系など追加
   };
-  const DEFAULT_THEME_ID = "default_dots";
+  const UI_THEMES = {
+    ui_dark_default: {
+      id: "ui_dark_default",
+      name: "Default Dark",
+      cssVars: {
+        "--bg":"#0f1115",
+        "--panel":"#171a21",
+        "--text":"#e8ecf3",
+        "--muted":"#a9b2c3",
+        "--card":"rgba(255,255,255,.04)",
+        "--card2":"rgba(255,255,255,.03)",
+        "--shadow":"0 12px 30px rgba(0,0,0,.35)",
+        "--ring":"rgba(255,255,255,.16)",
+        "--pink":"#ff6fae",
+        "--orange":"#ff9a4a",
+        "--yellow":"#ffd55a",
+        "--green":"#6ee38b",
+        "--blue":"#62c7ff"
+      }
+    },
+    ui_light_default: {
+      id: "ui_light_default",
+      name: "Default Light",
+      cssVars: {
+        "--bg":"#f5f6fb",
+        "--panel":"#ffffff",
+        "--text":"#1d2433",
+        "--muted":"#63708a",
+        "--card":"#ffffff",
+        "--card2":"rgba(0,0,0,.02)",
+        "--shadow":"0 8px 20px rgba(0,0,0,.08)",
+        "--ring":"rgba(0,0,0,.08)",
+        "--pink":"#e0569c",
+        "--orange":"#ff8a3c",
+        "--yellow":"#e9ba3c",
+        "--green":"#46b86f",
+        "--blue":"#4a9ded"
+      }
+    }
+    // 将来: ui_light_default, ui_pastel など追加
+  };
+
+  const DEFAULT_STAMP_THEME_ID = "default_dots";
+  const DEFAULT_UI_THEME_ID = "ui_dark_default";
 
   // ===== Diary Blocks: templates (今は骨格) =====
   // “instanceId” を持つ設計にして、将来同種ブロック複数に対応できる形にしておく。
@@ -81,6 +125,16 @@
   const pickerEl = document.getElementById("picker");
   const caretEl = document.getElementById("caret");
 
+  // theme picker
+  const themeOverlay = document.getElementById("themeOverlay");
+  const themePanel = document.getElementById("themePanel");
+  const themeGrid = document.getElementById("themeGrid");
+  const openThemePickerBtn = document.getElementById("openThemePicker");
+  const closeThemePickerBtn = document.getElementById("closeThemePicker");
+  const applyThemeBtn = document.getElementById("applyThemeBtn");
+  const cancelThemeBtn = document.getElementById("cancelTheme");
+  let selectedUiThemeId = null;
+
   const hamburgerBtn = document.getElementById("hamburger");
   const menuOverlay = document.getElementById("menuOverlay");
   const menuSheet = document.getElementById("menuSheet");
@@ -124,23 +178,80 @@
   function loadSettings(){
     try {
       const s = window.storageApi.loadSettings();
-      const stampThemeId = (typeof s.stampThemeId === "string") ? s.stampThemeId : DEFAULT_THEME_ID;
-      const diaryLayout = Array.isArray(s.diaryLayout) ? s.diaryLayout : defaultDiaryLayout();
-      return { stampThemeId, diaryLayout };
+      const stampThemeId = (typeof s.stampThemeId === "string") ? s.stampThemeId : DEFAULT_STAMP_THEME_ID;
+      const uiThemeId = (typeof s.uiThemeId === "string") ? s.uiThemeId : DEFAULT_UI_THEME_ID;
+      const ownedThemeIds = Array.isArray(s.ownedThemeIds) ? s.ownedThemeIds : [DEFAULT_STAMP_THEME_ID];
+      const themeByMonth = (s && typeof s.themeByMonth === "object" && s.themeByMonth !== null) ? s.themeByMonth : {};
+      const diaryLayout = sanitizeLayout(Array.isArray(s.diaryLayout) ? s.diaryLayout : defaultDiaryLayout());
+      return { stampThemeId, uiThemeId, ownedThemeIds, themeByMonth, diaryLayout };
     } catch {
-      return { stampThemeId: DEFAULT_THEME_ID, diaryLayout: defaultDiaryLayout() };
+      return {
+        stampThemeId: DEFAULT_STAMP_THEME_ID,
+        uiThemeId: DEFAULT_UI_THEME_ID,
+        ownedThemeIds: [DEFAULT_STAMP_THEME_ID],
+        themeByMonth: {},
+        diaryLayout: defaultDiaryLayout()
+      };
     }
   }
   function saveSettings(obj){
-    window.storageApi.saveSettings(obj);
+    const payload = {
+      stampThemeId: (obj && typeof obj.stampThemeId === "string") ? obj.stampThemeId : DEFAULT_STAMP_THEME_ID,
+      uiThemeId: (obj && typeof obj.uiThemeId === "string") ? obj.uiThemeId : DEFAULT_UI_THEME_ID,
+      ownedThemeIds: (obj && Array.isArray(obj.ownedThemeIds)) ? obj.ownedThemeIds : [DEFAULT_STAMP_THEME_ID],
+      themeByMonth: (obj && typeof obj.themeByMonth === "object" && obj.themeByMonth !== null) ? obj.themeByMonth : {},
+      diaryLayout: sanitizeLayout(obj && Array.isArray(obj.diaryLayout) ? obj.diaryLayout : defaultDiaryLayout())
+    };
+    window.storageApi.saveSettings(payload);
   }
   let settings = loadSettings();
 
   // customize draft (cancelできるように)
   let customizeDraft = null;
 
+  function ensureDiaryLayout(){
+    settings.diaryLayout = sanitizeLayout(settings.diaryLayout || defaultDiaryLayout());
+    return settings.diaryLayout;
+  }
+
+  // theme helpers
+  function validStampThemeId(themeId){
+    return STAMP_THEMES[themeId] ? themeId : DEFAULT_STAMP_THEME_ID;
+  }
+  function validUiThemeId(themeId){
+    return UI_THEMES[themeId] ? themeId : DEFAULT_UI_THEME_ID;
+  }
+
+  function getStampThemeIdForMonth(yyyyMm){
+    const byMonth = settings.themeByMonth || {};
+    if (byMonth && typeof byMonth[yyyyMm] === "string") return byMonth[yyyyMm];
+    return settings.stampThemeId || DEFAULT_STAMP_THEME_ID;
+  }
+
+  function applyStampTheme(themeId){
+    settings.stampThemeId = validStampThemeId(themeId || settings.stampThemeId);
+  }
+
+  function applyUiTheme(themeId){
+    const uiId = validUiThemeId(themeId || settings.uiThemeId);
+    const uiTheme = UI_THEMES[uiId] || UI_THEMES[DEFAULT_UI_THEME_ID];
+    const baseTheme = UI_THEMES[DEFAULT_UI_THEME_ID];
+
+    // reset to base then apply target overrides
+    const entries = [
+      ...(baseTheme?.cssVars ? Object.entries(baseTheme.cssVars) : []),
+      ...(uiTheme?.cssVars ? Object.entries(uiTheme.cssVars) : [])
+    ];
+    for (const [k,v] of entries){
+      document.documentElement.style.setProperty(k, v);
+    }
+
+    settings.uiThemeId = uiId;
+    document.documentElement.setAttribute("data-ui-theme", uiId);
+  }
+
   function getStampTheme(){
-    return STAMP_THEMES[settings.stampThemeId] || STAMP_THEMES[DEFAULT_THEME_ID];
+    return STAMP_THEMES[settings.stampThemeId] || STAMP_THEMES[DEFAULT_STAMP_THEME_ID];
   }
   function stampIndexById(){
     const theme = getStampTheme();
@@ -408,6 +519,9 @@
 
   // render calendar (dynamic weeks)
   function renderCalendar(){
+    // theme per month hook (stamps) + UI theme
+    applyStampTheme(getStampThemeIdForMonth(`${YEAR}-${String(currentMonth).padStart(2,'0')}`));
+    applyUiTheme(settings.uiThemeId);
     daysEl.innerHTML = "";
 
     const first = new Date(YEAR, currentMonth - 1, 1);
@@ -507,6 +621,7 @@
   function renderDiaryBlocks(){
     if (!selectedDate) return;
     ensureDay(selectedDate);
+    ensureDiaryLayout();
 
     diaryBlocksEl.innerHTML = "";
 
@@ -781,7 +896,7 @@
   // ===== Customize Panel (骨格) =====
   function openCustomize(){
     if (!selectedDate) return;
-    customizeDraft = JSON.parse(JSON.stringify(settings.diaryLayout || defaultDiaryLayout()));
+    customizeDraft = JSON.parse(JSON.stringify(ensureDiaryLayout()));
     renderCustomizeList();
     slider.classList.add("customize");
   }
@@ -970,14 +1085,14 @@
   }
 
   openCustomizeBtn.addEventListener("click", () => {
-  if (!selectedDate) return;
+    if (!selectedDate) return;
 
-  calendarPanel.classList.add("hidden");
-  dowRow.classList.add("hidden");
+    calendarPanel.classList.add("hidden");
+    dowRow.classList.add("hidden");
 
-  customPanel.classList.add("show");
-  openCustomize();
-});
+    customPanel.classList.add("show");
+    openCustomize();
+  });
 
   function exitCustomizeAndShowCalendar(){
   calendarPanel.classList.remove("hidden");
@@ -995,7 +1110,75 @@
   });
   saveCustomizeBtn.addEventListener("click", () => {
     closeCustomize(true);
+    ensureDiaryLayout();
     exitCustomizeAndShowCalendar();
+  });
+
+  // ===== UI Theme Picker =====
+  function showThemePicker(){
+    selectedUiThemeId = settings.uiThemeId || DEFAULT_UI_THEME_ID;
+    renderThemeGrid();
+    themeOverlay.classList.add("show");
+    themePanel.classList.add("show");
+  }
+  function hideThemePicker(){
+    themeOverlay.classList.remove("show");
+    themePanel.classList.remove("show");
+  }
+
+  function themePreviewVars(themeId){
+    const theme = UI_THEMES[validUiThemeId(themeId)];
+    const base = UI_THEMES[DEFAULT_UI_THEME_ID];
+    const vars = { ...(base?.cssVars || {}) };
+    Object.assign(vars, theme?.cssVars || {});
+    return vars;
+  }
+
+  function renderThemeGrid(){
+    themeGrid.innerHTML = "";
+    const entries = Object.values(UI_THEMES);
+    for (const t of entries){
+      const card = document.createElement("div");
+      card.className = "themeCard" + (t.id === selectedUiThemeId ? " selected" : "");
+
+      const thumb = document.createElement("div");
+      thumb.className = "themeThumb";
+      const vars = themePreviewVars(t.id);
+      thumb.style.background = vars["--panel"] ? vars["--panel"] : thumb.style.background;
+      thumb.style.color = vars["--text"] || "inherit";
+      const b1 = document.createElement("div"); b1.className = "bar";
+      const b2 = document.createElement("div"); b2.className = "bar";
+      const b3 = document.createElement("div"); b3.className = "bar";
+      thumb.appendChild(b1); thumb.appendChild(b2); thumb.appendChild(b3);
+
+      const name = document.createElement("div");
+      name.className = "themeName";
+      name.textContent = t.name || t.id;
+
+      card.appendChild(thumb);
+      card.appendChild(name);
+
+      card.addEventListener("click", () => {
+        selectedUiThemeId = t.id;
+        renderThemeGrid();
+      });
+
+      themeGrid.appendChild(card);
+    }
+  }
+
+  openThemePickerBtn.addEventListener("click", () => {
+    hidePicker();
+    hideInlineConfirm();
+    showThemePicker();
+  });
+  closeThemePickerBtn.addEventListener("click", hideThemePicker);
+  cancelThemeBtn.addEventListener("click", hideThemePicker);
+  applyThemeBtn.addEventListener("click", () => {
+    settings.uiThemeId = validUiThemeId(selectedUiThemeId);
+    saveSettings(settings);
+    applyUiTheme(settings.uiThemeId);
+    hideThemePicker();
   });
 
   // list
@@ -1191,8 +1374,20 @@
 
     if (payload?.settings && typeof payload.settings === "object"){
       const incomingTheme = payload.settings.stampThemeId;
+      const incomingUi = payload.settings.uiThemeId;
+      const incomingOwned = payload.settings.ownedThemeIds;
+      const incomingThemeByMonth = payload.settings.themeByMonth;
       if (typeof incomingTheme === "string"){
         settings.stampThemeId = incomingTheme;
+      }
+      if (typeof incomingUi === "string"){
+        settings.uiThemeId = incomingUi;
+      }
+      if (Array.isArray(incomingOwned)){
+        settings.ownedThemeIds = incomingOwned;
+      }
+      if (incomingThemeByMonth && typeof incomingThemeByMonth === "object"){
+        settings.themeByMonth = incomingThemeByMonth;
       }
       if (Array.isArray(payload.settings.diaryLayout)){
         settings.diaryLayout = sanitizeLayout(payload.settings.diaryLayout);
@@ -1244,6 +1439,7 @@
 
     state = loadStateForMonth(currentMonth);
     settings = loadSettings();
+    applyUiTheme(settings.uiThemeId);
     selectedDate = null;
     diaryWrap.style.display = "none";
     hidePicker();
@@ -1274,6 +1470,7 @@
   // close menu on Esc already
 
   // init
+  applyUiTheme(settings.uiThemeId);
   renderCalendar();
   setView("calendar");
 
