@@ -132,7 +132,6 @@
   const openThemePickerBtn = document.getElementById("openThemePicker");
   const closeThemePickerBtn = document.getElementById("closeThemePicker");
   const applyThemeBtn = document.getElementById("applyThemeBtn");
-  const cancelThemeBtn = document.getElementById("cancelTheme");
   let selectedUiThemeId = null;
 
   const hamburgerBtn = document.getElementById("hamburger");
@@ -1161,7 +1160,6 @@
     showThemePicker();
   });
   closeThemePickerBtn.addEventListener("click", hideThemePicker);
-  cancelThemeBtn.addEventListener("click", hideThemePicker);
   applyThemeBtn.addEventListener("click", () => {
     settings.uiThemeId = validUiThemeId(selectedUiThemeId);
     saveSettings(settings);

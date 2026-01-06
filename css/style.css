@@ -3,11 +3,43 @@
     :root{
       --bg:#0f1115;
       --panel:#171a21;
-      --text:#e8ecf3;
+      --text:#e8ecf3;          /* legacy */
       --muted:#a9b2c3;
-      --card: rgba(255,255,255,.04);
+      --text-strong:#e8ecf3;
+      --text-normal:#d8dde6;
+      --text-muted:#a9b2c3;
+      --text-mini:#8f9ab1;
+
+      --card:#1c2028;
       --card2: rgba(255,255,255,.03);
-      --shadow: 0 12px 30px rgba(0,0,0,.35);
+      --card-border: rgba(255,255,255,.06);
+      --card-shadow: 0 12px 30px rgba(0,0,0,.35);
+
+      --input-bg: rgba(0,0,0,.18);
+      --input-border: rgba(255,255,255,.10);
+      --input-shadow: 0 4px 10px rgba(0,0,0,.25);
+      --box-bg: rgba(0,0,0,.18);
+      --box-border: rgba(255,255,255,.10);
+      --box-shadow: var(--shd-sm);
+
+      --btn-bg: rgba(255,255,255,.06);
+      --btn-fg: #e8ecf3;
+      --btn-border: rgba(255,255,255,.12);
+      --btn-shadow: 0 4px 10px rgba(0,0,0,.25);
+      --btn-danger-bg: rgba(255,120,120,.12);
+      --btn-danger-border: rgba(255,140,140,.25);
+      --btn-danger-fg: #ffc8c8;
+      --btn-danger-shadow: 0 4px 10px rgba(0,0,0,.25);
+
+      --pill-bg: rgba(255,255,255,.06);
+      --pill-border: rgba(255,255,255,.12);
+      --pill-fg: rgba(232,236,243,.85);
+
+      --shd-sm: 0 4px 10px rgba(0,0,0,.25);
+      --shd-md: 0 12px 30px rgba(0,0,0,.35);
+      --shd-lg: 0 18px 44px rgba(0,0,0,.5);
+
+      --shadow: var(--shd-md);
       --ring: rgba(255,255,255,.16);
 
       --pink:#ff6fae;
@@ -21,9 +53,35 @@
       --panel:#171a21;
       --text:#e8ecf3;
       --muted:#a9b2c3;
-      --card: rgba(255,255,255,.04);
+      --text-strong:#e8ecf3;
+      --text-normal:#d8dde6;
+      --text-muted:#a9b2c3;
+      --text-mini:#8f9ab1;
+      --card:#1c2028;
       --card2: rgba(255,255,255,.03);
-      --shadow: 0 12px 30px rgba(0,0,0,.35);
+      --card-border: rgba(255,255,255,.06);
+      --card-shadow: 0 12px 30px rgba(0,0,0,.35);
+      --input-bg: rgba(0,0,0,.18);
+      --input-border: rgba(255,255,255,.10);
+      --input-shadow: 0 4px 10px rgba(0,0,0,.25);
+      --box-bg: rgba(0,0,0,.18);
+      --box-border: rgba(255,255,255,.10);
+      --box-shadow: var(--shd-sm);
+      --btn-bg: rgba(255,255,255,.06);
+      --btn-fg: #e8ecf3;
+      --btn-border: rgba(255,255,255,.12);
+      --btn-shadow: 0 4px 10px rgba(0,0,0,.25);
+      --btn-danger-bg: rgba(255,120,120,.12);
+      --btn-danger-border: rgba(255,140,140,.25);
+      --btn-danger-fg: #ffc8c8;
+      --btn-danger-shadow: 0 4px 10px rgba(0,0,0,.25);
+      --pill-bg: rgba(255,255,255,.06);
+      --pill-border: rgba(255,255,255,.12);
+      --pill-fg: rgba(232,236,243,.85);
+      --shd-sm: 0 4px 10px rgba(0,0,0,.25);
+      --shd-md: 0 12px 30px rgba(0,0,0,.35);
+      --shd-lg: 0 18px 44px rgba(0,0,0,.5);
+      --shadow: var(--shd-md);
       --ring: rgba(255,255,255,.16);
       --pink:#ff6fae;
       --orange:#ff9a4a;
@@ -36,9 +94,35 @@
       --panel:#ffffff;
       --text:#1d2433;
       --muted:#63708a;
+      --text-strong:#1d2433;
+      --text-normal:#2d3342;
+      --text-muted:#63708a;
+      --text-mini:#7a869c;
       --card:#ffffff;
       --card2:rgba(0,0,0,.02);
-      --shadow: 0 8px 20px rgba(0,0,0,.08);
+      --card-border: rgba(0,0,0,.08);
+      --card-shadow: 0 8px 20px rgba(0,0,0,.08);
+      --input-bg: #ffffff;
+      --input-border: rgba(0,0,0,.08);
+      --input-shadow: 0 4px 10px rgba(0,0,0,.08);
+      --box-bg: #ffffff;
+      --box-border: rgba(0,0,0,.08);
+      --box-shadow: var(--shd-sm);
+      --btn-bg: #f3f7fb;
+      --btn-fg: #3a4558;
+      --btn-border: rgba(0,0,0,.08);
+      --btn-shadow: 0 4px 10px rgba(0,0,0,.08);
+      --btn-danger-bg: #ffe8e8;
+      --btn-danger-border: rgba(220,70,70,.25);
+      --btn-danger-fg: #b03030;
+      --btn-danger-shadow: 0 4px 10px rgba(0,0,0,.12);
+      --pill-bg: rgba(58,69,88,.06);
+      --pill-border: rgba(58,69,88,.15);
+      --pill-fg: rgba(58,69,88,.85);
+      --shd-sm: 0 4px 10px rgba(0,0,0,.08);
+      --shd-md: 0 8px 20px rgba(0,0,0,.08);
+      --shd-lg: 0 12px 26px rgba(0,0,0,.14);
+      --shadow: var(--shd-md);
       --ring: rgba(0,0,0,.08);
       --pink:#e0569c;
       --orange:#ff8a3c;
@@ -52,12 +136,12 @@
       margin:0;
       font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
       background: radial-gradient(1100px 700px at 20% 0%, #1a2040 0%, var(--bg) 60%);
-      color: var(--text);
+      color: var(--text-strong);
       -webkit-tap-highlight-color: transparent;
     }
     :root[data-ui-theme="ui_light_default"] body{
       background: var(--bg);
-      color: #1d2433;
+      color: var(--text-strong);
     }
 
     header{
@@ -94,15 +178,16 @@
       width: 36px;
       height: 34px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--btn-fg);
       cursor:pointer;
       display:flex;
       align-items:center;
       justify-content:center;
       font-size: 16px;
       line-height: 1;
+      box-shadow: var(--btn-shadow);
     }
     .navBtn:active{ transform: translateY(1px); }
     .navBtn[disabled]{ opacity: .35; cursor: default; transform:none; }
@@ -133,19 +218,21 @@
       width: 38px;
       height: 34px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
       gap: 4px;
       cursor:pointer;
+      box-shadow: var(--btn-shadow);
+      color: var(--btn-fg);
     }
     .hamburger span{
       width: 16px;
       height: 2px;
-      background: rgba(255,255,255,.75);
+      background: currentColor;
       border-radius: 2px;
     }
     .hamburger:active{ transform: translateY(1px); }
@@ -164,11 +251,11 @@
 
     .grid{
       background: var(--card);
-      border: 1px solid rgba(255,255,255,.06);
+      border: 1px solid var(--card-border);
       border-radius: 16px;
       padding: 10px;
       margin-top: 8px;
-      box-shadow: var(--shadow);
+      box-shadow: var(--card-shadow);
     }
 
     .days{
@@ -355,33 +442,39 @@
     .themeSub{ font-size: 12px; color: var(--muted); margin-top: 4px; }
     .themeGrid{
       margin-top: 12px;
-      display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 10px;
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
       overflow-y: auto;
       padding: 4px;
       flex: 1 1 auto;
     }
     .themeCard{
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.14);
-      padding: 10px;
+      border: 1px solid var(--card-border);
+      background: var(--card);
+      padding: 12px;
       cursor:pointer;
       transition: border-color .12s ease, transform .12s ease;
+      display:flex;
+      gap: 12px;
+      align-items:center;
+      box-shadow: var(--card-shadow);
     }
-    .themeCard:hover{ border-color: rgba(255,255,255,.22); transform: translateY(-1px); }
+    .themeCard:hover{ border-color: rgba(98,199,255,.6); transform: translateY(-1px); }
     .themeCard.selected{
       border-color: rgba(98,199,255,.9);
       box-shadow: 0 10px 24px rgba(0,0,0,.35);
     }
     .themeThumb{
-      border-radius: 10px;
-      height: 80px;
+      border-radius: 12px;
+      height: 72px;
+      width: 140px;
       background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(0,0,0,.08));
       position: relative;
       overflow: hidden;
       border: 1px solid rgba(255,255,255,.08);
+      flex: 0 0 auto;
     }
     .themeThumb .bar{
       position:absolute;
@@ -390,19 +483,23 @@
       border-radius: 6px;
       background: rgba(255,255,255,.3);
     }
-    .themeThumb .bar:nth-child(1){ top: 16px; width: 70%; }
-    .themeThumb .bar:nth-child(2){ top: 34px; width: 50%; }
-    .themeThumb .bar:nth-child(3){ top: 52px; width: 80%; }
+    .themeThumb .bar:nth-child(1){ top: 14px; width: 70%; }
+    .themeThumb .bar:nth-child(2){ top: 32px; width: 50%; }
+    .themeThumb .bar:nth-child(3){ top: 50px; width: 80%; }
     .themeName{
-      margin-top: 10px;
       font-size: 14px;
       font-weight: 700;
+      color: var(--text-strong);
     }
     .themeFooter{
       margin-top: 12px;
+      padding-top: 8px;
       display:flex;
-      justify-content: flex-end;
+      justify-content: center;
       gap: 10px;
+    }
+    .themeFooter .btn{
+      min-width: 180px;
     }
 
     /* ===== menu ===== */
@@ -456,19 +553,22 @@
 
     /* ===== buttons ===== */
     .btn{
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--btn-fg);
       border-radius: 12px;
       padding: 10px 12px;
       font-size: 13px;
       cursor:pointer;
       min-width: 90px;
+      box-shadow: var(--btn-shadow);
     }
     .btn:active{ transform: translateY(1px); }
     .btn.danger{
-      border-color: rgba(255,140,140,.25);
-      background: rgba(255,120,120,.12);
+      border-color: var(--btn-danger-border);
+      background: var(--btn-danger-bg);
+      color: var(--btn-danger-fg);
+      box-shadow: var(--btn-danger-shadow);
     }
 
     /* ===== diary + customize wrapper (slide) ===== */
@@ -488,11 +588,12 @@
     .panel{
       width: 50%;
       background: var(--card);
-      border: 1px solid rgba(255,255,255,.06);
+      border: 1px solid var(--card-border);
       border-radius: 16px;
       padding: 12px;
-      box-shadow: var(--shadow);
+      box-shadow: var(--card-shadow);
       display:none;
+      color: var(--text-strong);
     }
     .panel.show{ display:block; }
 
@@ -538,13 +639,14 @@
       width: 38px;
       height: 34px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--btn-fg);
       cursor:pointer;
       display:flex;
       align-items:center;
       justify-content:center;
+      box-shadow: var(--btn-shadow);
     }
     .iconBtn:active{ transform: translateY(1px); }
     .iconBtn svg{ width: 18px; height: 18px; opacity:.9; }
@@ -554,13 +656,14 @@
       margin: 6px 0 10px;
       padding: 10px;
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+      box-shadow: var(--box-shadow);
     }
     .inlineConfirm.show{ display:block; }
     .inlineConfirmMsg{
       font-size: 13px;
-      color: rgba(232,236,243,.95);
+      color: var(--text-normal);
       margin-bottom: 10px;
       line-height: 1.5;
     }
@@ -594,13 +697,14 @@
       width: 100%;
       padding: 12px 12px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      color: var(--text);
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-strong);
       outline: none;
       font-size: 16px;
+      box-shadow: var(--input-shadow);
     }
-    input.goal:focus{ border-color: rgba(255,255,255,.22); }
+    input.goal:focus{ border-color: rgba(74,157,237,.65); }
 
     .todoList{ display:flex; flex-direction:column; gap: 8px; }
     .todoRow{
@@ -654,13 +758,14 @@
       flex: 1 1 auto;
       padding: 10px 10px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      color: var(--text);
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-strong);
       outline: none;
       font-size: 14px;
+      box-shadow: var(--input-shadow);
     }
-    .todoRow input.todoText:focus{ border-color: rgba(255,255,255,.22); }
+    .todoRow input.todoText:focus{ border-color: rgba(74,157,237,.65); }
 
     .todoDel{
       position:absolute;
@@ -683,15 +788,16 @@
       min-height: 140px;
       padding: 12px 12px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      color: var(--text);
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-strong);
       outline: none;
       resize: vertical;
       line-height: 1.5;
       font-size: 14px;
+      box-shadow: var(--input-shadow);
     }
-    textarea.memo:focus{ border-color: rgba(255,255,255,.22); }
+    textarea.memo:focus{ border-color: rgba(74,157,237,.65); }
 
     .hint{ color: var(--muted); font-size: 12px; margin-top: 10px; line-height: 1.6; }
 
@@ -740,11 +846,12 @@
     .list{
       margin-top: 12px;
       background: var(--card);
-      border: 1px solid rgba(255,255,255,.06);
+      border: 1px solid var(--card-border);
       border-radius: 16px;
       padding: 12px;
-      box-shadow: var(--shadow);
+      box-shadow: var(--card-shadow);
       display:none;
+      color: var(--text-strong);
     }
     .list.show{ display:block; }
 
@@ -842,11 +949,12 @@
     .data{
       margin-top: 12px;
       background: var(--card);
-      border: 1px solid rgba(255,255,255,.06);
+      border: 1px solid var(--card-border);
       border-radius: 16px;
       padding: 12px;
-      box-shadow: var(--shadow);
+      box-shadow: var(--card-shadow);
       display:none;
+      color: var(--text-strong);
     }
     .data.show{ display:block; }
 
@@ -886,14 +994,15 @@
     }
 
     .toggleBtn{
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--btn-fg);
       border-radius: 12px;
       padding: 9px 10px;
       font-size: 13px;
       cursor:pointer;
       white-space: nowrap;
+      box-shadow: var(--btn-shadow);
     }
     .toggleBtn:active{ transform: translateY(1px); }
 
@@ -902,8 +1011,9 @@
       margin-top: 8px;
       padding: 10px;
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.14);
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+      box-shadow: var(--box-shadow);
     }
     .monthBreakdown.show{ display:block; }
 
@@ -914,7 +1024,7 @@
       padding: 6px 0;
       border-top: 1px solid rgba(255,255,255,.06);
       font-size: 13px;
-      color: rgba(232,236,243,.92);
+      color: var(--text-normal);
     }
     .monthLine:first-child{ border-top:none; padding-top:0; }
     .monthLine span:last-child{ color: var(--muted); }
@@ -1039,14 +1149,15 @@
       width: 34px;
       height: 30px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--btn-fg);
       cursor:pointer;
       display:flex;
       align-items:center;
       justify-content:center;
       font-size: 13px;
+      box-shadow: var(--btn-shadow);
     }
     .tinyBtn[disabled]{ opacity: .35; cursor: default; }
     .tinyBtn:active{ transform: translateY(1px); }
@@ -1093,14 +1204,15 @@
       align-items:center;
     }
     .ghostBtn{
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.02);
-      color: var(--text);
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--btn-fg);
       border-radius: 12px;
       padding: 10px 12px;
       font-size: 13px;
       cursor:pointer;
       min-width: 120px;
+      box-shadow: var(--btn-shadow);
     }
     .ghostBtn:active{ transform: translateY(1px); }
 
@@ -1192,6 +1304,12 @@
       background: #f3f7fb; /* lightened + desaturated blue-gray */
       color: #3a4558;
       box-shadow: 0 4px 10px rgba(0,0,0,.08);
+    }
+    :root[data-ui-theme="ui_light_default"] .btn.danger{
+      border-color: var(--btn-danger-border);
+      background: var(--btn-danger-bg);
+      color: var(--btn-danger-fg);
+      box-shadow: var(--btn-danger-shadow);
     }
     :root[data-ui-theme="ui_light_default"] .hamburger span{
       background: rgba(58,69,88,.85);
