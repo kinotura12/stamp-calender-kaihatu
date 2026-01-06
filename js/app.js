@@ -5,6 +5,7 @@
   const MIN_MONTH = 1;
   const MAX_MONTH = 12;
   const APP_VERSION = "1.4.0";
+  const APP_SCHEMA_VERSION = 1;
 
   // ===== Theme registries =====
   const STAMP_MOODS = ["mood_1","mood_2","mood_3","mood_4","mood_5"];
@@ -16,6 +17,7 @@
       name: "Color Dots",
       schemaVersion: 1,
       basePath: "",
+      hash: "",
       stamps: [
         { mood: "mood_1", label: "Mood 1", className: "pink", color: "#ff6fae" },
         { mood: "mood_2", label: "Mood 2", className: "orange", color: "#ff9a4a" },
@@ -29,6 +31,7 @@
       name: "Dark Moods",
       schemaVersion: 1,
       basePath: "",
+      hash: "",
       stamps: [
         { mood: "mood_1", label: "最高", color: "#6ad0f5", className: "mood-dark-1" },
         { mood: "mood_2", label: "良い", color: "#4b7bec", className: "mood-dark-2" },
@@ -46,6 +49,8 @@
       id: "ui_dark_default",
       name: "Default Dark",
       schemaVersion: 1,
+      basePath: "",
+      hash: "",
       cssVars: {
         "--bg":"#0f1115",
         "--surface-1":"#171a21",
@@ -105,6 +110,8 @@
       id: "ui_light_default",
       name: "Default Light",
       schemaVersion: 1,
+      basePath: "",
+      hash: "",
       cssVars: {
         "--bg":"#f5f6fb",
         "--surface-1":"#ffffff",
@@ -302,6 +309,11 @@
     const raw = window.storageApi.loadMonthData(month) || {};
     return sanitizeMonthData(raw);
   }
+
+  function migrateMonthData(raw){
+    // 追加項目が出たときはここで変換/補完を行う。現状は sanitize のみ。
+    return sanitizeMonthData(raw);
+  }
   function saveStateForMonth(month, obj){
     window.storageApi.saveMonthData(month, obj);
   }
@@ -339,16 +351,28 @@
       const ownedThemeIds = Array.isArray(s.ownedThemeIds) ? s.ownedThemeIds : [DEFAULT_STAMP_THEME_ID];
       const themeByMonth = (s && typeof s.themeByMonth === "object" && s.themeByMonth !== null) ? s.themeByMonth : {};
       const diaryLayout = sanitizeLayout(Array.isArray(s.diaryLayout) ? s.diaryLayout : defaultDiaryLayout());
-      return { stampThemeId, uiThemeId, ownedThemeIds, themeByMonth, diaryLayout };
+      return { stampThemeId, uiThemeId, ownedThemeIds, themeByMonth, diaryLayout, schemaVersion: APP_SCHEMA_VERSION };
     } catch {
       return {
         stampThemeId: DEFAULT_STAMP_THEME_ID,
         uiThemeId: DEFAULT_UI_THEME_ID,
         ownedThemeIds: [DEFAULT_STAMP_THEME_ID],
         themeByMonth: {},
-        diaryLayout: defaultDiaryLayout()
+        diaryLayout: defaultDiaryLayout(),
+        schemaVersion: APP_SCHEMA_VERSION
       };
     }
+  }
+  function migrateSettings(obj){
+    // 追加フィールドや形式変更があればここで補正する。
+    return {
+      stampThemeId: (obj && typeof obj.stampThemeId === "string") ? obj.stampThemeId : DEFAULT_STAMP_THEME_ID,
+      uiThemeId: (obj && typeof obj.uiThemeId === "string") ? obj.uiThemeId : DEFAULT_UI_THEME_ID,
+      ownedThemeIds: (obj && Array.isArray(obj.ownedThemeIds)) ? obj.ownedThemeIds : [DEFAULT_STAMP_THEME_ID],
+      themeByMonth: (obj && typeof obj.themeByMonth === "object" && obj.themeByMonth !== null) ? obj.themeByMonth : {},
+      diaryLayout: sanitizeLayout(obj && Array.isArray(obj.diaryLayout) ? obj.diaryLayout : defaultDiaryLayout()),
+      schemaVersion: obj?.schemaVersion || APP_SCHEMA_VERSION
+    };
   }
   function saveSettings(obj){
     const payload = {
@@ -356,7 +380,8 @@
       uiThemeId: (obj && typeof obj.uiThemeId === "string") ? obj.uiThemeId : DEFAULT_UI_THEME_ID,
       ownedThemeIds: (obj && Array.isArray(obj.ownedThemeIds)) ? obj.ownedThemeIds : [DEFAULT_STAMP_THEME_ID],
       themeByMonth: (obj && typeof obj.themeByMonth === "object" && obj.themeByMonth !== null) ? obj.themeByMonth : {},
-      diaryLayout: sanitizeLayout(obj && Array.isArray(obj.diaryLayout) ? obj.diaryLayout : defaultDiaryLayout())
+      diaryLayout: sanitizeLayout(obj && Array.isArray(obj.diaryLayout) ? obj.diaryLayout : defaultDiaryLayout()),
+      schemaVersion: APP_SCHEMA_VERSION
     };
     window.storageApi.saveSettings(payload);
   }
@@ -386,6 +411,7 @@
     return {
       id: normalized.id || DEFAULT_STAMP_THEME_ID,
       basePath: normalized.basePath || "",
+      hash: normalized.hash || "",
       byMood: normalized.byMood
     };
   }
@@ -431,7 +457,7 @@
     }
 
     const resolvedId = targetId || DEFAULT_UI_THEME_ID;
-    return { id: resolvedId, tokens, assets, basePath };
+    return { id: resolvedId, tokens, assets, basePath, hash: chain[chain.length-1]?.hash || "" };
   }
 
   function applyThemeTokens(themeId, targetEl = document.documentElement, options = {}){
@@ -510,6 +536,7 @@
       name: def?.name || base.name,
       schemaVersion: def?.schemaVersion || base.schemaVersion || 1,
       basePath: typeof def?.basePath === "string" ? def.basePath : base.basePath || "",
+      hash: typeof def?.hash === "string" ? def.hash : (base.hash || ""),
       byMood
     };
   }
@@ -1514,7 +1541,8 @@
       if (raw.assets && typeof raw.assets[k] === "string") assets[k] = raw.assets[k];
     }
     const basePath = typeof raw.basePath === "string" ? raw.basePath : "";
-    return { id: raw.id || DEFAULT_UI_THEME_ID, tokens, assets, basePath };
+    const hash = typeof raw.hash === "string" ? raw.hash : "";
+    return { id: raw.id || DEFAULT_UI_THEME_ID, tokens, assets, basePath, hash };
   }
 
   function renderThemeGrid(){
@@ -1879,6 +1907,13 @@
     const payload = {
       app: "StickerCalendar",
       version: APP_VERSION,
+      appSchemaVersion: APP_SCHEMA_VERSION,
+      settingsSchemaVersion: settings.schemaVersion || APP_SCHEMA_VERSION,
+      exportScope: "fullSettings",
+      themeBasePaths: {
+        ui: resolveUiTheme(settings.uiThemeId).basePath || "",
+        stamp: resolvedStampTheme.basePath || ""
+      },
       type: "bulk",
       year: YEAR,
       fromMonth: r.from,
@@ -1920,6 +1955,12 @@
       return;
     }
 
+    const incomingAppSchema = payload?.appSchemaVersion || 1;
+    if (incomingAppSchema > APP_SCHEMA_VERSION){
+      window.alert("このエクスポートは新しいバージョンのアプリで作成されています。最新バージョンで読み込みを行ってください。");
+      return;
+    }
+
     const monthsObj = payload?.months && typeof payload.months === "object" ? payload.months : null;
     if (!monthsObj){
       window.alert("有効な月データが含まれていません。");
@@ -1930,6 +1971,11 @@
     if (!ok) return;
 
     const incomingSettings = (payload?.settings && typeof payload.settings === "object") ? payload.settings : {};
+    const incomingSettingsVersion = incomingSettings.schemaVersion || payload?.settingsSchemaVersion || payload?.appSchemaVersion || 1;
+    if (incomingSettingsVersion > APP_SCHEMA_VERSION){
+      window.alert("このエクスポートは新しいバージョンのアプリで作成されています。最新バージョンで読み込みを行ってください。");
+      return;
+    }
     const incomingTheme = typeof incomingSettings.stampThemeId === "string" ? incomingSettings.stampThemeId
                         : (typeof payload?.stampThemeId === "string" ? payload.stampThemeId : null);
     const incomingUi = typeof incomingSettings.uiThemeId === "string" ? incomingSettings.uiThemeId
@@ -1937,23 +1983,17 @@
     const incomingOwned = Array.isArray(incomingSettings.ownedThemeIds) ? incomingSettings.ownedThemeIds : null;
     const incomingThemeByMonth = (incomingSettings.themeByMonth && typeof incomingSettings.themeByMonth === "object") ? incomingSettings.themeByMonth : null;
 
-    if (incomingTheme){
-      settings.stampThemeId = validStampThemeId(incomingTheme);
-      applyStampTheme(settings.stampThemeId);
-    }
-    if (incomingUi){
-      settings.uiThemeId = validUiThemeId(incomingUi);
-      applyUiTheme(settings.uiThemeId);
-    }
-    if (incomingOwned){
-      settings.ownedThemeIds = incomingOwned;
-    }
-    if (incomingThemeByMonth){
-      settings.themeByMonth = incomingThemeByMonth;
-    }
-    if (Array.isArray(incomingSettings.diaryLayout)){
-      settings.diaryLayout = sanitizeLayout(incomingSettings.diaryLayout);
-    }
+    const migratedSettings = migrateSettings({
+      stampThemeId: incomingTheme || settings.stampThemeId,
+      uiThemeId: incomingUi || settings.uiThemeId,
+      ownedThemeIds: incomingOwned || settings.ownedThemeIds,
+      themeByMonth: incomingThemeByMonth || settings.themeByMonth,
+      diaryLayout: incomingSettings.diaryLayout || settings.diaryLayout,
+      schemaVersion: incomingSettingsVersion
+    });
+    settings = migratedSettings;
+    applyStampTheme(settings.stampThemeId);
+    applyUiTheme(settings.uiThemeId);
     saveSettings(settings);
 
     for (let m=MIN_MONTH; m<=MAX_MONTH; m++){
@@ -1961,7 +2001,8 @@
       if (Object.prototype.hasOwnProperty.call(monthsObj, key)){
         const incoming = monthsObj[key];
         if (incoming && typeof incoming === "object"){
-          saveStateForMonth(m, incoming);
+          const migrated = migrateMonthData(incoming);
+          saveStateForMonth(m, migrated);
         }
       }
     }

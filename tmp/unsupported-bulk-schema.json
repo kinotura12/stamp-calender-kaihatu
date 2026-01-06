@@ -1,0 +1,24 @@
+{
+  "app": "StickerCalendar",
+  "version": "1.4.0",
+  "type": "bulk",
+  "appSchemaVersion": 999,
+  "settingsSchemaVersion": 999,
+  "exportScope": "fullSettings",
+  "year": 2026,
+  "fromMonth": 1,
+  "toMonth": 1,
+  "exportedAt": "2026-01-06T12:00:00.000Z",
+  "settings": {
+    "uiThemeId": "ui_light_default",
+    "stampThemeId": "stamp_theme_does_not_exist",
+    "ownedThemeIds": ["default_dots"],
+    "themeByMonth": {},
+    "diaryLayout": []
+  },
+  "months": {
+    "01": {
+      "2026-01-01": {"stampId": "mood_1", "diary": {"goal": "test", "todos": [], "memo": ""}}
+    }
+  }
+}
