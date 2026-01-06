@@ -16,6 +16,36 @@
       --green:#6ee38b;
       --blue:#62c7ff;
     }
+    :root[data-ui-theme="ui_dark_default"]{
+      --bg:#0f1115;
+      --panel:#171a21;
+      --text:#e8ecf3;
+      --muted:#a9b2c3;
+      --card: rgba(255,255,255,.04);
+      --card2: rgba(255,255,255,.03);
+      --shadow: 0 12px 30px rgba(0,0,0,.35);
+      --ring: rgba(255,255,255,.16);
+      --pink:#ff6fae;
+      --orange:#ff9a4a;
+      --yellow:#ffd55a;
+      --green:#6ee38b;
+      --blue:#62c7ff;
+    }
+    :root[data-ui-theme="ui_light_default"]{
+      --bg:#f5f6fb;
+      --panel:#ffffff;
+      --text:#1d2433;
+      --muted:#63708a;
+      --card:#ffffff;
+      --card2:rgba(0,0,0,.02);
+      --shadow: 0 8px 20px rgba(0,0,0,.08);
+      --ring: rgba(0,0,0,.08);
+      --pink:#e0569c;
+      --orange:#ff8a3c;
+      --yellow:#e9ba3c;
+      --green:#46b86f;
+      --blue:#4a9ded;
+    }
 
     *{ box-sizing:border-box; }
     body{
@@ -213,7 +243,7 @@
       transition: transform .08s ease;
     }
     .dot:active{ transform: scale(.95); }
-    .dot.filled{ border-color: rgba(255,255,255,.18); box-shadow: 0 8px 18px rgba(0,0,0,.25); }
+    .dot.filled{ border-color: rgba(255,255,255,.18); box-shadow: 0 4px 10px rgba(0,0,0,.28); }
     .dot.pink{ background: var(--pink); }
     .dot.orange{ background: var(--orange); }
     .dot.yellow{ background: var(--yellow); }
@@ -488,7 +518,7 @@
       transition: transform .08s ease;
     }
     .diaryStamp:active{ transform: scale(.95); }
-    .diaryStamp.filled{ border-color: rgba(255,255,255,.18); box-shadow: 0 8px 18px rgba(0,0,0,.25); }
+    .diaryStamp.filled{ border-color: rgba(255,255,255,.18); box-shadow: 0 4px 10px rgba(0,0,0,.28); }
     .diaryStamp.pink{ background: var(--pink); }
     .diaryStamp.orange{ background: var(--orange); }
     .diaryStamp.yellow{ background: var(--yellow); }
@@ -558,14 +588,7 @@
       margin-bottom: 8px;
     }
     .sectionTitle{ font-size: 12px; color: var(--muted); display:flex; align-items:center; gap:8px; }
-    .chip{
-      font-size: 11px;
-      color: rgba(232,236,243,.9);
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      padding: 4px 8px;
-      border-radius: 999px;
-    }
+    .chip{ display:none; }
 
     input.goal{
       width: 100%;
@@ -700,7 +723,7 @@
       border-radius: 999px;
       border: 2px solid rgba(255,255,255,.22);
       cursor:pointer;
-      box-shadow: 0 12px 24px rgba(0,0,0,.35);
+      box-shadow: 0 4px 10px rgba(0,0,0,.28);
       transition: transform .08s ease, opacity .14s ease;
       background: transparent;
     }
@@ -1239,6 +1262,12 @@
     }
     :root[data-ui-theme="ui_light_default"] .switch input[type="checkbox"]{
       box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    }
+    :root[data-ui-theme="ui_light_default"] .lockTag,
+    :root[data-ui-theme="ui_light_default"] .chip{
+      color: rgba(58,69,88,.85);
+      border: 1px solid rgba(58,69,88,.15);
+      background: rgba(58,69,88,.06);
     }
     :root[data-ui-theme="ui_light_default"] .themePanel{
       color: #1d2433;

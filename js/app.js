@@ -234,18 +234,6 @@
 
   function applyUiTheme(themeId){
     const uiId = validUiThemeId(themeId || settings.uiThemeId);
-    const uiTheme = UI_THEMES[uiId] || UI_THEMES[DEFAULT_UI_THEME_ID];
-    const baseTheme = UI_THEMES[DEFAULT_UI_THEME_ID];
-
-    // reset to base then apply target overrides
-    const entries = [
-      ...(baseTheme?.cssVars ? Object.entries(baseTheme.cssVars) : []),
-      ...(uiTheme?.cssVars ? Object.entries(uiTheme.cssVars) : [])
-    ];
-    for (const [k,v] of entries){
-      document.documentElement.style.setProperty(k, v);
-    }
-
     settings.uiThemeId = uiId;
     document.documentElement.setAttribute("data-ui-theme", uiId);
   }
