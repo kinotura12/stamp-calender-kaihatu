@@ -510,122 +510,236 @@
     }
     .themeCard{
       border-radius: 14px;
-      border: 1px solid var(--card-border);
-      background: var(--card);
+      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      background: var(--card, rgba(255,255,255,.06));
       padding: 12px;
       cursor:pointer;
       transition: border-color .12s ease, transform .12s ease;
       display:flex;
       flex-direction:column;
       gap: 10px;
-      box-shadow: var(--card-shadow);
+      box-shadow: var(--card-shadow, 0 12px 30px rgba(0,0,0,.35));
+      color: var(--text-normal, #d8dde6);
     }
-    .themeCard:hover{ border-color: rgba(98,199,255,.6); transform: translateY(-1px); }
+    .themeCard:hover{ border-color: var(--accent, rgba(98,199,255,.6)); transform: translateY(-1px); }
     .themeCard.selected{
-      border-color: rgba(98,199,255,.9);
+      border-color: var(--accent, rgba(98,199,255,.9));
       box-shadow: 0 10px 24px rgba(0,0,0,.35);
     }
     .themeThumb{
       border-radius: 12px;
-      height: 180px;
+      height: 220px;
       width: 100%;
-      background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(0,0,0,.08));
+      background: var(--panel, var(--card));
       position: relative;
       overflow: hidden;
-      border: 1px solid rgba(255,255,255,.08);
+      border: 1px solid var(--card-border, rgba(255,255,255,.08));
       flex: 0 0 auto;
       padding: 10px;
       box-sizing: border-box;
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
     }
     .themeThumb .thumbHeader{
+      height: 22px;
+      border-radius: 10px;
+      background: var(--surface-2, rgba(255,255,255,.08));
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      padding: 0 8px;
+      font-size: 11px;
+      color: var(--text-strong, #e8ecf3);
+      gap: 6px;
+    }
+    .thumbHeaderBtn{
+      width: 18px;
       height: 18px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      background: rgba(255,255,255,.14);
+      border-radius: 6px;
+      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      background: var(--btn-bg, rgba(255,255,255,.06));
+      color: var(--text-strong, #e8ecf3);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 12px;
+      box-shadow: var(--btn-shadow, 0 3px 8px rgba(0,0,0,.18));
+      flex: 0 0 auto;
+    }
+    .thumbHeaderTitle{
+      flex: 0 0 auto;
+      min-width: 82px;
+      text-align: center;
+      padding: 0 6px;
     }
     .themeThumb .thumbBody{
       display:flex;
-      gap: 8px;
+      gap: 10px;
       align-items:flex-start;
-      height: calc(100% - 28px);
-    }
-    .themeThumb .thumbSidebar{
-      flex: 0 0 22%;
-      height: 100%;
-      border-radius: 10px;
-      background: rgba(255,255,255,.06);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
-    }
-    .themeThumb .thumbContent{
       flex: 1 1 auto;
-      height: 100%;
-      border-radius: 10px;
-      background: rgba(255,255,255,.04);
+      overflow:hidden;
+    }
+    .thumbCalendar{
+      flex: 0 0 40%;
+      background: var(--surface-1, rgba(0,0,0,.18));
+      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      border-radius: 12px;
       padding: 8px;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+      box-shadow: var(--shadow-sm, 0 4px 10px rgba(0,0,0,.25));
       display:flex;
       flex-direction:column;
       gap: 6px;
     }
-    .themeThumb .thumbRow{
-      height: 8px;
-      border-radius: 6px;
-      background: rgba(255,255,255,.25);
-      width: 75%;
-    }
-    .themeThumb .thumbRow.short{ width: 45%; }
-    .themeThumb .thumbRow.long{ width: 90%; }
-    .themeThumb .thumbMiniCal{
+    .thumbCalRow{
       display:grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 4px;
-      margin-bottom: 6px;
     }
-    .themeThumb .calCell{
-      height: 12px;
-      border-radius: 4px;
-      background: rgba(255,255,255,.12);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    .thumbDay{
+      background: var(--surface-2, rgba(0,0,0,.16));
+      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      border-radius: 8px;
+      padding: 6px 6px 10px;
+      position: relative;
+      height: 44px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
     }
-    .themeThumb .calCell.accent{
-      background: rgba(98,199,255,.75);
-      box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    .thumbDay.selected{
+      border-color: var(--accent, rgba(98,199,255,.75));
+      box-shadow: 0 4px 10px rgba(0,0,0,.15);
     }
-    .themeThumb .thumbDiary{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      margin-top: 4px;
+    .thumbDayDate{
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-strong, #e8ecf3);
+      line-height: 1;
     }
-    .themeThumb .thumbStamp{
+    .thumbDayStamp{
       width: 14px;
       height: 14px;
       border-radius: 999px;
-      border: 2px solid rgba(255,255,255,.3);
-      background: rgba(98,199,255,.85);
+      background: var(--pink, var(--accent, rgba(98,199,255,.85)));
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
       box-shadow: 0 2px 6px rgba(0,0,0,.2);
-      flex: 0 0 auto;
+      border: 2px solid var(--card-border, rgba(255,255,255,.18));
     }
-    .themeThumb .thumbDiaryLines{
+    .thumbContent{
       flex: 1 1 auto;
+      background: var(--card, rgba(255,255,255,.04));
+      border: 1px solid var(--card-border, rgba(255,255,255,.08));
+      border-radius: 12px;
+      box-shadow: var(--card-shadow, 0 12px 30px rgba(0,0,0,.35));
+      padding: 10px;
       display:flex;
       flex-direction:column;
-      gap: 4px;
+      gap: 8px;
     }
-    .themeThumb .thumbDiaryLines .line{
-      height: 6px;
-      border-radius: 4px;
-      background: rgba(255,255,255,.25);
-      width: 80%;
+    .thumbDiaryCard{
+      background: var(--surface-2, rgba(255,255,255,.06));
+      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      border-radius: 10px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+      padding: 8px;
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      flex: 1 1 auto;
     }
-    .themeThumb .thumbDiaryLines .line.short{ width: 55%; }
-    .themeThumb .thumbBtn{
-      margin-top: auto;
-      height: 16px;
+    .thumbDiaryTop{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--text-strong, #e8ecf3);
+      font-weight: 700;
+    }
+    .thumbDiaryStamp{
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--pink, var(--accent, rgba(98,199,255,.85)));
+      border: 2px solid var(--card-border, rgba(255,255,255,.18));
+      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    }
+    .thumbMoodRow{
+      display:flex;
+      gap: 6px;
+    }
+    .thumbMoodDot{
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--pink);
+      box-shadow: 0 2px 4px rgba(0,0,0,.12);
+    }
+    .thumbMoodDot.orange{ background: var(--orange); }
+    .thumbMoodDot.yellow{ background: var(--yellow); }
+    .thumbMoodDot.green{ background: var(--green); }
+    .thumbMoodDot.blue{ background: var(--blue); }
+    .thumbField{
       border-radius: 8px;
-      background: rgba(98,199,255,.8);
-      width: 38%;
-      box-shadow: 0 3px 8px rgba(0,0,0,.18);
+      background: var(--input-bg, rgba(0,0,0,.12));
+      border: 1px solid var(--input-border, rgba(255,255,255,.12));
+      box-shadow: var(--input-shadow, 0 4px 10px rgba(0,0,0,.12));
+      padding: 6px 8px;
+      font-size: 10px;
+      color: var(--text-normal, #d8dde6);
+    }
+    .thumbTodoList{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+    .thumbTodoRow{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .thumbTodoCheck{
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid var(--card-border, rgba(255,255,255,.2));
+      background: var(--surface-3, rgba(255,255,255,.04));
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .thumbTodoCheck.checked{
+      background: var(--accent, rgba(98,199,255,.75));
+      border-color: var(--accent, rgba(98,199,255,.75));
+      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    }
+    .thumbTodoCheck.checked::after{
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border: 2px solid var(--surface-1, #0f1115);
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+      border-radius: 1px;
+    }
+    .thumbTodo{
+      border-radius: 6px;
+      background: var(--surface-3, rgba(255,255,255,.08));
+      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      padding: 5px 8px;
+      color: var(--text-muted, rgba(255,255,255,.7));
+      font-size: 10px;
+      flex: 1 1 auto;
+      width: 100%;
+    }
+    .thumbMemo{
+      border-radius: 8px;
+      background: var(--surface-3, rgba(255,255,255,.08));
+      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      padding: 8px;
+      color: var(--text-muted, rgba(255,255,255,.7));
+      font-size: 10px;
     }
     .themeName{
       font-size: 14px;
@@ -1482,18 +1596,6 @@
     :root[data-ui-theme="ui_light_default"] textarea.memo:focus{
       border-color: rgba(74,157,237,.65);
       box-shadow: 0 6px 12px rgba(0,0,0,.10);
-    }
-    :root[data-ui-theme="ui_light_default"] .themeCard{
-      background: rgba(0,0,0,.03);
-      border: 1px solid rgba(0,0,0,.08);
-    }
-    :root[data-ui-theme="ui_light_default"] .themeCard.selected{
-      border-color: rgba(74,157,237,.85);
-      box-shadow: 0 10px 24px rgba(0,0,0,.12);
-    }
-    :root[data-ui-theme="ui_light_default"] .themeThumb{
-      background: linear-gradient(135deg, rgba(0,0,0,.04), rgba(255,255,255,.08));
-      border-color: rgba(0,0,0,.08);
     }
     :root[data-ui-theme="ui_light_default"] .picker{
       background: rgba(255,255,255,.98);

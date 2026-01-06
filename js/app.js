@@ -144,6 +144,21 @@
   const DEFAULT_STAMP_THEME_ID = "default_dots";
   const DEFAULT_UI_THEME_ID = "ui_dark_default";
 
+  // UI theme token registry (fixed list; values change per theme)
+  const UI_TOKEN_KEYS = [
+    "--bg","--surface-1","--surface-2","--surface-3","--border-subtle","--border-strong",
+    "--text-strong","--text-normal","--text-muted","--text-mini","--text","--muted",
+    "--shadow-sm","--shadow-md","--shadow-lg","--shadow-card","--shadow-popover",
+    "--input-bg","--input-border","--input-shadow","--box-bg","--box-border","--box-shadow",
+    "--btn-bg","--btn-fg","--btn-border","--btn-shadow","--btn-danger-bg","--btn-danger-border","--btn-danger-fg","--btn-danger-shadow",
+    "--pill-bg","--pill-border","--pill-fg",
+    "--accent","--accent-2","--success","--warning","--danger","--info","--link",
+    "--ring",
+    "--pink","--orange","--yellow","--green","--blue",
+    "--panel","--card","--card2","--card-border","--card-shadow",
+  ];
+  const UI_TOKEN_SET = new Set(UI_TOKEN_KEYS);
+
   // ===== Diary Blocks: templates (今は骨格) =====
   // “instanceId” を持つ設計にして、将来同種ブロック複数に対応できる形にしておく。
   const BLOCK_TEMPLATES = {
@@ -309,10 +324,50 @@
     settings.stampThemeId = validStampThemeId(themeId || settings.stampThemeId);
   }
 
+  function resolveUiTheme(themeId){
+    const fallbackVars = sanitizeThemeVars(UI_THEMES[DEFAULT_UI_THEME_ID]?.cssVars || {});
+    const chain = [];
+    const visited = new Set();
+    let curId = UI_THEMES[themeId] ? themeId : DEFAULT_UI_THEME_ID;
+    while (curId && UI_THEMES[curId] && !visited.has(curId)){
+      const t = UI_THEMES[curId];
+      chain.unshift(t); // 親を前にしたくて unshift
+      visited.add(curId);
+      if (t.extends && UI_THEMES[t.extends]){
+        curId = t.extends;
+      } else {
+        break;
+      }
+    }
+
+    let tokens = { ...fallbackVars };
+    for (const t of chain){
+      tokens = sanitizeThemeVars(t.cssVars || {}, tokens);
+    }
+
+    const resolvedId = UI_THEMES[themeId] ? themeId : DEFAULT_UI_THEME_ID;
+    return { id: resolvedId, tokens };
+  }
+
+  function applyThemeTokens(themeId, targetEl = document.documentElement, options = {}){
+    const { setDataAttr = (targetEl === document.documentElement) } = options;
+    const { id, tokens } = resolveUiTheme(themeId);
+    for (const key of UI_TOKEN_KEYS){
+      if (Object.prototype.hasOwnProperty.call(tokens, key)){
+        targetEl.style.setProperty(key, tokens[key]);
+      } else {
+        targetEl.style.removeProperty(key);
+      }
+    }
+    if (setDataAttr && targetEl === document.documentElement){
+      targetEl.setAttribute("data-ui-theme", id);
+    }
+    return { id, tokens };
+  }
+
   function applyUiTheme(themeId){
-    const uiId = validUiThemeId(themeId || settings.uiThemeId);
-    settings.uiThemeId = uiId;
-    document.documentElement.setAttribute("data-ui-theme", uiId);
+    const { id } = applyThemeTokens(themeId || settings.uiThemeId);
+    settings.uiThemeId = id;
   }
 
   function getStampTheme(){
@@ -1192,12 +1247,14 @@
     themePanel.classList.remove("show");
   }
 
-  function themePreviewVars(themeId){
-    const theme = UI_THEMES[validUiThemeId(themeId)];
-    const base = UI_THEMES[DEFAULT_UI_THEME_ID];
-    const vars = { ...(base?.cssVars || {}) };
-    Object.assign(vars, theme?.cssVars || {});
-    return vars;
+  function sanitizeThemeVars(rawVars = {}, fallback = {}){
+    const out = { ...fallback };
+    for (const [k,v] of Object.entries(rawVars)){
+      if (UI_TOKEN_SET.has(k)){
+        out[k] = v;
+      }
+    }
+    return out;
   }
 
   function renderThemeGrid(){
@@ -1207,90 +1264,111 @@
       const card = document.createElement("div");
       card.className = "themeCard" + (t.id === selectedUiThemeId ? " selected" : "");
 
+      // カードのルートにテーマトークンを注入（サムネ内部だけそのテーマ色で描画）
+      applyThemeTokens(t.id, card, { setDataAttr: false });
+
       const thumb = document.createElement("div");
       thumb.className = "themeThumb";
-      const vars = themePreviewVars(t.id);
-      const cardBg = vars["--card"] || thumb.style.background;
-      const cardBorder = vars["--card-border"] || "rgba(255,255,255,.08)";
-      const panelBg = vars["--panel"] || cardBg;
-      const card2 = vars["--card2"] || cardBg;
-      const textNorm = vars["--text-normal"] || vars["--text-strong"] || "inherit";
-      const textMuted = vars["--text-muted"] || textNorm;
-      const btnBg = vars["--btn-bg"] || vars["--card2"] || cardBg;
-      const btnBorder = vars["--btn-border"] || "transparent";
-      const btnShadow = vars["--btn-shadow"] || "";
-      const accent = vars["--accent"] || vars["--blue"] || "rgba(98,199,255,.75)";
-
-      card.style.background = cardBg;
-      card.style.borderColor = cardBorder;
-      if (vars["--card-shadow"]) card.style.boxShadow = vars["--card-shadow"];
-
-      thumb.style.background = cardBg;
-      thumb.style.borderColor = cardBorder;
 
       const header = document.createElement("div");
       header.className = "thumbHeader";
-      header.style.background = panelBg;
+      const prevBtn = document.createElement("div");
+      prevBtn.className = "thumbHeaderBtn";
+      prevBtn.textContent = "<";
+      const headerTitle = document.createElement("div");
+      headerTitle.className = "thumbHeaderTitle";
+      headerTitle.textContent = `${YEAR}年${String(currentMonth).padStart(2,"0")}月`;
+      const nextBtn = document.createElement("div");
+      nextBtn.className = "thumbHeaderBtn";
+      nextBtn.textContent = ">";
+      header.appendChild(prevBtn);
+      header.appendChild(headerTitle);
+      header.appendChild(nextBtn);
 
       const body = document.createElement("div");
       body.className = "thumbBody";
 
-      const sidebar = document.createElement("div");
-      sidebar.className = "thumbSidebar";
-      sidebar.style.background = card2;
-      sidebar.style.boxShadow = `inset 0 0 0 1px ${cardBorder}`;
+      // calendar side
+      const cal = document.createElement("div");
+      cal.className = "thumbCalendar";
+      const calRow = document.createElement("div");
+      calRow.className = "thumbCalRow";
+      for (let i=0;i<8;i++){
+        const day = document.createElement("div");
+        day.className = "thumbDay" + (i===2 ? " selected" : "");
+        const dayDate = document.createElement("div");
+        dayDate.className = "thumbDayDate";
+        dayDate.textContent = String(24 + i);
+        day.appendChild(dayDate);
+        if (i===2){
+          const dayStamp = document.createElement("div");
+          dayStamp.className = "thumbDayStamp";
+          day.appendChild(dayStamp);
+        }
+        calRow.appendChild(day);
+      }
+      cal.appendChild(calRow);
 
+      // diary side
       const content = document.createElement("div");
       content.className = "thumbContent";
-      content.style.background = cardBg;
-      content.style.boxShadow = `inset 0 0 0 1px ${cardBorder}`;
+      const diaryCard = document.createElement("div");
+      diaryCard.className = "thumbDiaryCard";
 
-      const miniCal = document.createElement("div");
-      miniCal.className = "thumbMiniCal";
-      for (let i=0;i<7;i++){
-        const cell = document.createElement("div");
-        cell.className = "calCell" + (i===3 ? " accent" : "");
-        cell.style.background = card2;
-        if (cell.classList.contains("accent")){
-          cell.style.background = accent;
-          cell.style.boxShadow = "0 2px 6px rgba(0,0,0,.2)";
-        }
-        miniCal.appendChild(cell);
-      }
+      const diaryTop = document.createElement("div");
+      diaryTop.className = "thumbDiaryTop";
+      const diaryStamp = document.createElement("div");
+      diaryStamp.className = "thumbDiaryStamp";
+      const diaryDate = document.createElement("div");
+      diaryDate.textContent = `${YEAR}-${String(currentMonth).padStart(2,"0")}-26`;
+      diaryTop.appendChild(diaryStamp);
+      diaryTop.appendChild(diaryDate);
 
-      const r1 = document.createElement("div"); r1.className = "thumbRow long"; r1.style.background = textMuted;
-      const r2 = document.createElement("div"); r2.className = "thumbRow"; r2.style.background = textNorm;
-      const r3 = document.createElement("div"); r3.className = "thumbRow short"; r3.style.background = textMuted;
+      const moodRow = document.createElement("div");
+      moodRow.className = "thumbMoodRow";
+      ["pink","orange","yellow","green","blue"].forEach(c => {
+        const dot = document.createElement("div");
+        dot.className = "thumbMoodDot " + c;
+        moodRow.appendChild(dot);
+      });
 
-      const diary = document.createElement("div");
-      diary.className = "thumbDiary";
-      const stamp = document.createElement("div");
-      stamp.className = "thumbStamp";
-      stamp.style.background = accent;
-      const diaryLines = document.createElement("div");
-      diaryLines.className = "thumbDiaryLines";
-      const dl1 = document.createElement("div"); dl1.className = "line";
-      const dl2 = document.createElement("div"); dl2.className = "line short";
-      dl1.style.background = textNorm;
-      dl2.style.background = textMuted;
-      diaryLines.appendChild(dl1);
-      diaryLines.appendChild(dl2);
-      diary.appendChild(stamp);
-      diary.appendChild(diaryLines);
+      const goalField = document.createElement("div");
+      goalField.className = "thumbField";
+      goalField.textContent = "今日の目標";
 
-      const btnSample = document.createElement("div"); btnSample.className = "thumbBtn";
-      btnSample.style.background = btnBg;
-      btnSample.style.boxShadow = btnShadow;
-      btnSample.style.border = `1px solid ${btnBorder}`;
+      const todoList = document.createElement("div");
+      todoList.className = "thumbTodoList";
+      const todoData = [
+        { text: "TODO", done: true },
+        { text: "TODO", done: false },
+        { text: "TODO", done: false }
+      ];
+      todoData.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "thumbTodoRow";
+        const cb = document.createElement("div");
+        cb.className = "thumbTodoCheck" + (item.done ? " checked" : "");
+        const todo = document.createElement("div");
+        todo.className = "thumbTodo";
+        todo.textContent = item.text;
+        row.appendChild(cb);
+        row.appendChild(todo);
+        todoList.appendChild(row);
+      });
 
-      content.appendChild(miniCal);
-      content.appendChild(r1);
-      content.appendChild(r2);
-      content.appendChild(r3);
-      content.appendChild(diary);
-      content.appendChild(btnSample);
+      const memoField = document.createElement("div");
+      memoField.className = "thumbMemo";
+      memoField.textContent = "メモ（自動保存）";
 
-      body.appendChild(sidebar);
+      diaryCard.appendChild(diaryTop);
+      diaryCard.appendChild(moodRow);
+      diaryCard.appendChild(goalField);
+      diaryCard.appendChild(todoList);
+      diaryCard.appendChild(memoField);
+
+      content.appendChild(diaryCard);
+
+      body.appendChild(cal);
       body.appendChild(content);
 
       thumb.appendChild(header);
