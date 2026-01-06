@@ -1059,17 +1059,20 @@
 
       const todoLines = (d.todos || [])
         .filter(t => (t.text||"").trim() || t.done)
-        .slice(0, 3)
-        .map(t => `${t.done ? "☑" : "☐"} ${t.text || ""}`.trim())
-        .join("\n");
+        .map(t => {
+          const cls = t.done ? "done" : "todo";
+          const label = escapeHtml(escapePreview((t.text || "").trim()));
+          return `<span class="checkIcon ${cls}"></span>${label}`;
+        })
+        .join("<br>");
 
       const parts = [];
-      if (d.goal && d.goal.trim()) parts.push(`目標：${escapePreview(d.goal.trim())}`);
+      if (d.goal && d.goal.trim()) parts.push(`目標：${escapeHtml(escapePreview(d.goal.trim()))}`);
       if (todoLines) parts.push(todoLines);
-      if (d.memo && d.memo.trim()) parts.push(escapePreview(d.memo.trim()));
+      if (d.memo && d.memo.trim()) parts.push(escapeHtml(escapePreview(d.memo.trim())));
 
       preview.className = "preview" + (parts.length ? "" : " muted");
-      preview.textContent = parts.length ? parts.join("\n") : "（未記入）";
+      preview.innerHTML = parts.length ? parts.join("<br>") : "（未記入）";
 
       item.appendChild(head);
       item.appendChild(preview);
