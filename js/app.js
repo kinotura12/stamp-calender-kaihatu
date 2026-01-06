@@ -1929,28 +1929,32 @@
     const ok = window.confirm("データ読み込みを実行しますか？\n（データがある月のみ上書きされます）");
     if (!ok) return;
 
-    if (payload?.settings && typeof payload.settings === "object"){
-      const incomingTheme = payload.settings.stampThemeId;
-      const incomingUi = payload.settings.uiThemeId;
-      const incomingOwned = payload.settings.ownedThemeIds;
-      const incomingThemeByMonth = payload.settings.themeByMonth;
-      if (typeof incomingTheme === "string"){
-        settings.stampThemeId = incomingTheme;
-      }
-      if (typeof incomingUi === "string"){
-        settings.uiThemeId = incomingUi;
-      }
-      if (Array.isArray(incomingOwned)){
-        settings.ownedThemeIds = incomingOwned;
-      }
-      if (incomingThemeByMonth && typeof incomingThemeByMonth === "object"){
-        settings.themeByMonth = incomingThemeByMonth;
-      }
-      if (Array.isArray(payload.settings.diaryLayout)){
-        settings.diaryLayout = sanitizeLayout(payload.settings.diaryLayout);
-      }
-      saveSettings(settings);
+    const incomingSettings = (payload?.settings && typeof payload.settings === "object") ? payload.settings : {};
+    const incomingTheme = typeof incomingSettings.stampThemeId === "string" ? incomingSettings.stampThemeId
+                        : (typeof payload?.stampThemeId === "string" ? payload.stampThemeId : null);
+    const incomingUi = typeof incomingSettings.uiThemeId === "string" ? incomingSettings.uiThemeId
+                     : (typeof payload?.uiThemeId === "string" ? payload.uiThemeId : null);
+    const incomingOwned = Array.isArray(incomingSettings.ownedThemeIds) ? incomingSettings.ownedThemeIds : null;
+    const incomingThemeByMonth = (incomingSettings.themeByMonth && typeof incomingSettings.themeByMonth === "object") ? incomingSettings.themeByMonth : null;
+
+    if (incomingTheme){
+      settings.stampThemeId = validStampThemeId(incomingTheme);
+      applyStampTheme(settings.stampThemeId);
     }
+    if (incomingUi){
+      settings.uiThemeId = validUiThemeId(incomingUi);
+      applyUiTheme(settings.uiThemeId);
+    }
+    if (incomingOwned){
+      settings.ownedThemeIds = incomingOwned;
+    }
+    if (incomingThemeByMonth){
+      settings.themeByMonth = incomingThemeByMonth;
+    }
+    if (Array.isArray(incomingSettings.diaryLayout)){
+      settings.diaryLayout = sanitizeLayout(incomingSettings.diaryLayout);
+    }
+    saveSettings(settings);
 
     for (let m=MIN_MONTH; m<=MAX_MONTH; m++){
       const key = String(m).padStart(2,'0');

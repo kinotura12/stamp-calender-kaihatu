@@ -10,5 +10,14 @@
     { "mood": "mood_3", "label": "Mood C", "color": "#aaaaff", "asset": "m3.png" },
     { "mood": "mood_4", "label": "Mood D", "color": "#ffaaee", "asset": "m4.png" },
     { "mood": "mood_5", "label": "Mood E", "color": "#aaffee", "asset": "m5.png" }
-  ]
+  ],
+  "months": {
+    "01": {
+      "2026-01-01": {"stampId": "mood_1", "diary": {"goal": "test", "todos": [], "memo": ""}}
+    }
+  },
+  "settings": {
+    "uiThemeId": "ui_light_default",
+    "stampThemeId": "stamp_theme_does_not_exist"
+  }
 }

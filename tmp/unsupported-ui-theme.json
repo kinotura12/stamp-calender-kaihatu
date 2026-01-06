@@ -11,5 +11,14 @@
   "assets": {
     "headerBg": "header.png",
     "bgPattern": "pattern.svg"
+  },
+  "months": {
+    "01": {
+      "2026-01-02": {"stampId": "mood_2", "diary": {"goal": "test", "todos": [], "memo": ""}}
+    }
+  },
+  "settings": {
+    "uiThemeId": "ui_future_invalid",
+    "stampThemeId": "stamp_legacy_future"
   }
 }
