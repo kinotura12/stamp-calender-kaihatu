@@ -1,0 +1,5 @@
+// 役割：VS Code 用のワークスペース設定
+{
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false
+}
