@@ -1,0 +1,1266 @@
+/* role: app logic (moved from index.html) */
+
+(() => {
+  const YEAR = 2026;
+  const MIN_MONTH = 1;
+  const MAX_MONTH = 12;
+  const APP_VERSION = "1.4.0";
+
+  // ===== Stamp Master (Theme-ready, 5 colors) =====
+  const STAMP_THEMES = {
+    default_dots: {
+      id: "default_dots",
+      name: "Color Dots",
+      stamps: [
+        { id: "dot_pink",   label: "Color Dot Pink",       className: "pink" },
+        { id: "dot_orange", label: "Color Dot Orange",     className: "orange" },
+        { id: "dot_yellow", label: "Color Dot Yellow",     className: "yellow" },
+        { id: "dot_green",  label: "Color Dot Green",      className: "green" },
+        { id: "dot_blue",   label: "Color Dot Light Blue", className: "blue" },
+      ]
+    }
+  };
+  const DEFAULT_THEME_ID = "default_dots";
+
+  // ===== Diary Blocks: templates (今は骨格) =====
+  // “instanceId” を持つ設計にして、将来同種ブロック複数に対応できる形にしておく。
+  const BLOCK_TEMPLATES = {
+    mood: { type:"mood",  defaultName:"今日の気分は？", lockOrder: true,  lockName: true },
+    goal: { type:"goal",  defaultName:"今日の目標",     lockOrder: true,  lockName: false },
+    todo: { type:"todo",  defaultName:"TODOリスト",     lockOrder: false, lockName: false },
+    memo: { type:"memo",  defaultName:"自由メモ",       lockOrder: false, lockName: false },
+  };
+
+  // elements
+  const headerTitleEl = document.getElementById("headerTitle");
+  const headerSubEl = document.getElementById("headerSub");
+  const prevMonthBtn = document.getElementById("prevMonth");
+  const nextMonthBtn = document.getElementById("nextMonth");
+
+  const dowRow = document.getElementById("dowRow");
+  const calendarPanel = document.getElementById("calendarPanel");
+  const daysEl = document.getElementById("days");
+
+  const diaryWrap = document.getElementById("diaryWrap");
+  const slider = document.getElementById("slider");
+  const diaryPanel = document.getElementById("diaryPanel");
+  const customPanel = document.getElementById("customPanel");
+
+  const diaryDateEl = document.getElementById("diaryDate");
+  const diaryStampEl = document.getElementById("diaryStamp");
+  const deleteDayBtn = document.getElementById("deleteDay");
+  const openCustomizeBtn = document.getElementById("openCustomize");
+  const closeCustomizeBtn = document.getElementById("closeCustomize");
+  const cancelCustomizeBtn = document.getElementById("cancelCustomize");
+  const saveCustomizeBtn = document.getElementById("saveCustomize");
+
+  const diaryBlocksEl = document.getElementById("diaryBlocks");
+  const blockListEl = document.getElementById("blockList");
+
+  const inlineConfirm = document.getElementById("inlineConfirm");
+  const inlineYes = document.getElementById("inlineYes");
+  const inlineNo = document.getElementById("inlineNo");
+
+  const listEl = document.getElementById("list");
+  const listBodyEl = document.getElementById("listBody");
+  const listBadgeEl = document.getElementById("listBadge");
+
+  const dataEl = document.getElementById("data");
+  const yearTotalEl = document.getElementById("yearTotal");
+  const toggleBreakdownBtn = document.getElementById("toggleBreakdown");
+  const monthBreakdownEl = document.getElementById("monthBreakdown");
+
+  const bulkFrom = document.getElementById("bulkFrom");
+  const bulkTo = document.getElementById("bulkTo");
+  const bulkExportBtn = document.getElementById("bulkExportBtn");
+  const bulkImportFile = document.getElementById("bulkImportFile");
+  const bulkImportBtn = document.getElementById("bulkImportBtn");
+  const resetAllBtn = document.getElementById("resetAllBtn");
+
+  const pickerEl = document.getElementById("picker");
+  const caretEl = document.getElementById("caret");
+
+  const hamburgerBtn = document.getElementById("hamburger");
+  const menuOverlay = document.getElementById("menuOverlay");
+  const menuSheet = document.getElementById("menuSheet");
+  const menuCalendarBtn = document.getElementById("menuCalendar");
+  const menuListBtn = document.getElementById("menuList");
+  const menuDataBtn = document.getElementById("menuData");
+
+  // storage
+  function storageKey(month){
+    return `sticker-cal:${YEAR}-${String(month).padStart(2,'0')}`;
+  }
+  function loadStateForMonth(month){
+    try { return JSON.parse(localStorage.getItem(storageKey(month)) || "{}"); }
+    catch { return {}; }
+  }
+  function saveStateForMonth(month, obj){
+    localStorage.setItem(storageKey(month), JSON.stringify(obj));
+  }
+
+  // state
+  let currentMonth = 1;
+  let state = loadStateForMonth(currentMonth);
+  let selectedDate = null;
+  let pickerDate = null;
+  let pickerSource = null;
+  let viewMode = "calendar"; // calendar | list | data
+  let breakdownOpen = false;
+
+  // settings (theme + diary layout)
+  const SETTINGS_KEY = `sticker-cal:settings:${YEAR}`;
+
+  function uid(){
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+  }
+
+  function defaultDiaryLayout(){
+    // ①mood(固定) ②goal(固定) ③todo ④memo
+    return [
+      { instanceId: "blk_mood_fixed", type:"mood", name: BLOCK_TEMPLATES.mood.defaultName, visible:true },
+      { instanceId: "blk_goal_fixed", type:"goal", name: BLOCK_TEMPLATES.goal.defaultName, visible:true },
+      { instanceId: "blk_todo_1",     type:"todo", name: BLOCK_TEMPLATES.todo.defaultName, visible:true },
+      { instanceId: "blk_memo_1",     type:"memo", name: BLOCK_TEMPLATES.memo.defaultName, visible:true },
+    ];
+  }
+
+  function loadSettings(){
+    try {
+      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+      const stampThemeId = (typeof s.stampThemeId === "string") ? s.stampThemeId : DEFAULT_THEME_ID;
+      const diaryLayout = Array.isArray(s.diaryLayout) ? s.diaryLayout : defaultDiaryLayout();
+      return { stampThemeId, diaryLayout };
+    } catch {
+      return { stampThemeId: DEFAULT_THEME_ID, diaryLayout: defaultDiaryLayout() };
+    }
+  }
+  function saveSettings(obj){
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(obj));
+  }
+  let settings = loadSettings();
+
+  // customize draft (cancelできるように)
+  let customizeDraft = null;
+
+  function getStampTheme(){
+    return STAMP_THEMES[settings.stampThemeId] || STAMP_THEMES[DEFAULT_THEME_ID];
+  }
+  function stampIndexById(){
+    const theme = getStampTheme();
+    const map = new Map();
+    for (const s of theme.stamps) map.set(s.id, s);
+    return map;
+  }
+
+  function daysInMonthOf(month){
+    return new Date(YEAR, month, 0).getDate();
+  }
+  function ymd(month, day){
+    return `${YEAR}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  }
+
+  // backward compat
+  const legacyColorToStampId = {
+    pink: "dot_pink",
+    orange: "dot_orange",
+    yellow: "dot_yellow",
+    green: "dot_green",
+    blue: "dot_blue"
+  };
+
+  function ensureDay(dateKey){
+    if (!state[dateKey]) state[dateKey] = { stampId: null, diary: { goal:"", todos: [], memo:"" } };
+
+    if (state[dateKey].stamp !== undefined && state[dateKey].stampId === undefined){
+      const legacy = state[dateKey].stamp;
+      state[dateKey].stampId = legacy ? (legacyColorToStampId[legacy] || null) : null;
+      delete state[dateKey].stamp;
+    }
+    if (state[dateKey].stampId === undefined) state[dateKey].stampId = null;
+
+    if (!state[dateKey].diary) state[dateKey].diary = { goal:"", todos: [], memo:"" };
+
+    const d = state[dateKey].diary;
+    if (typeof d.goal !== "string") d.goal = "";
+    if (!Array.isArray(d.todos)) d.todos = [];
+    if (typeof d.memo !== "string") d.memo = "";
+
+    if (d.todos.length === 0){
+      d.todos = [
+        { id: uid(), done:false, text:"" },
+        { id: uid(), done:false, text:"" },
+        { id: uid(), done:false, text:"" },
+      ];
+    } else {
+      d.todos = d.todos.map(t => ({
+        id: (t && typeof t.id === "string") ? t.id : uid(),
+        done: !!(t && t.done),
+        text: (t && typeof t.text === "string") ? t.text : ""
+      }));
+    }
+  }
+  function persist(){
+    saveStateForMonth(currentMonth, state);
+  }
+
+  // goal preview condition
+  function shouldShowGoalPreview(){
+    return window.matchMedia("(min-width: 760px)").matches;
+  }
+  window.addEventListener("resize", () => renderCalendar());
+
+  function goalPreviewText(goal){
+    const s = (goal || "").trim();
+    return s || "";
+  }
+
+  // header by view
+  function updateHeader(){
+    if (viewMode === "data"){
+      headerTitleEl.textContent = "データ管理";
+      headerSubEl.textContent = "書き出し・読み込み・リセット";
+      prevMonthBtn.classList.add("hidden");
+      nextMonthBtn.classList.add("hidden");
+    } else if (viewMode === "list"){
+      headerTitleEl.textContent = `${YEAR}年${currentMonth}月 日記一覧`;
+      headerSubEl.textContent = "1日〜月末";
+      prevMonthBtn.classList.remove("hidden");
+      nextMonthBtn.classList.remove("hidden");
+    } else {
+      headerTitleEl.textContent = `${YEAR}年${currentMonth}月`;
+      headerSubEl.textContent = "丸タップでスタンプ / 日付タップで日記";
+      prevMonthBtn.classList.remove("hidden");
+      nextMonthBtn.classList.remove("hidden");
+    }
+
+    prevMonthBtn.disabled = currentMonth <= MIN_MONTH;
+    nextMonthBtn.disabled = currentMonth >= MAX_MONTH;
+  }
+
+  function setView(mode){
+    viewMode = mode;
+    hidePicker();
+    hideInlineConfirm();
+    closeCustomize(false);
+
+    const calendarVisible = (mode !== "data");
+    dowRow.classList.toggle("hidden", !calendarVisible);
+    calendarPanel.classList.toggle("hidden", !calendarVisible);
+
+    listEl.classList.remove("show");
+    dataEl.classList.remove("show");
+
+    // diaryWrap visibility (calendar or list only when diary opened)
+    if (mode === "calendar"){
+      if (selectedDate){
+        diaryWrap.style.display = "";
+        diaryPanel.classList.add("show");
+        customPanel.classList.remove("show"); // 普段は出さない
+      } else {
+        diaryWrap.style.display = "none";
+      }
+    } else {
+      diaryWrap.style.display = "none";
+    }
+
+    if (mode === "list"){
+      listEl.classList.add("show");
+      renderList();
+    } else if (mode === "data"){
+      dataEl.classList.add("show");
+      bulkFrom.value = String(currentMonth);
+      bulkTo.value = String(currentMonth);
+      renderYearStats();
+    }
+
+    updateHeader();
+  }
+
+  // month
+  function changeMonth(nextMonth){
+    if (nextMonth < MIN_MONTH || nextMonth > MAX_MONTH) return;
+
+    hidePicker();
+    hideInlineConfirm();
+    closeCustomize(false);
+
+    selectedDate = null;
+    viewMode = "calendar";
+
+    currentMonth = nextMonth;
+    state = loadStateForMonth(currentMonth);
+
+    renderCalendar();
+    setView("calendar");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  prevMonthBtn.addEventListener("click", () => changeMonth(currentMonth - 1));
+  nextMonthBtn.addEventListener("click", () => changeMonth(currentMonth + 1));
+
+  // menu
+  function closeMenu(){
+    menuOverlay.classList.remove("show");
+    menuSheet.classList.remove("show");
+  }
+  function openMenu(){
+    menuOverlay.classList.add("show");
+    menuSheet.classList.add("show");
+  }
+  hamburgerBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (menuSheet.classList.contains("show")) closeMenu();
+    else openMenu();
+  });
+  menuOverlay.addEventListener("click", closeMenu);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+
+  menuCalendarBtn.addEventListener("click", () => { closeMenu(); setView("calendar"); });
+  menuListBtn.addEventListener("click", () => { closeMenu(); setView("list"); });
+  menuDataBtn.addEventListener("click", () => { closeMenu(); setView("data"); });
+
+  // picker
+  function hidePicker(){
+    pickerEl.classList.remove("show");
+    caretEl.classList.remove("show");
+    pickerDate = null;
+    pickerSource = null;
+  }
+
+  function showPickerNear(el, dateKey, source){
+    pickerDate = dateKey;
+    pickerSource = source;
+
+    pickerEl.classList.add("show");
+    caretEl.classList.add("show");
+
+    const r = el.getBoundingClientRect();
+    const pr = pickerEl.getBoundingClientRect();
+    const caretSize = 10;
+
+    let left = r.left + r.width/2 - pr.width/2;
+    left = Math.max(8, Math.min(left, window.innerWidth - pr.width - 8));
+
+    let top = r.top - pr.height - 12;
+    let caretTop = r.top - caretSize/2 - 6;
+
+    if (top < 8){
+      top = r.bottom + 12;
+      caretTop = r.bottom + 6;
+    }
+
+    pickerEl.style.left = `${left}px`;
+    pickerEl.style.top = `${top}px`;
+
+    const caretLeft = r.left + r.width/2 - caretSize/2;
+    caretEl.style.left = `${caretLeft}px`;
+    caretEl.style.top = `${caretTop}px`;
+  }
+
+  function classForStampId(stampId){
+    if (!stampId) return null;
+    const map = stampIndexById();
+    return map.get(stampId)?.className || null;
+  }
+
+  function applyStamp(dateKey, stampIdOrNull){
+    ensureDay(dateKey);
+    state[dateKey].stampId = stampIdOrNull;
+    persist();
+
+    renderCalendar();
+    if (selectedDate === dateKey){
+      setDiaryStampFromDate(dateKey);
+      renderDiaryBlocks(); // mood widget + any preview sync
+    }
+    if (viewMode === "list") renderList();
+    if (viewMode === "data") renderYearStats();
+  }
+
+  pickerEl.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-stamp]");
+    if (!b || !pickerDate) return;
+
+    const dateKey = pickerDate;
+    const stampId = b.getAttribute("data-stamp");
+
+    ensureDay(dateKey);
+    const next = (state[dateKey].stampId === stampId) ? null : stampId;
+
+    hidePicker();
+    applyStamp(dateKey, next);
+  });
+
+  document.addEventListener("pointerdown", (e) => {
+    const inPicker = e.target.closest("#picker");
+    const isDot = e.target.closest(".dot") || e.target.closest("#diaryStamp");
+    if (!inPicker && !isDot) hidePicker();
+  });
+
+  function setDiaryStampFromDate(dateKey){
+    ensureDay(dateKey);
+    const stampId = state[dateKey].stampId;
+    diaryStampEl.className = "diaryStamp";
+    const cls = classForStampId(stampId);
+    if (cls) diaryStampEl.classList.add("filled", cls);
+  }
+  function setMiniStampClass(el, stampId){
+    el.className = "miniStamp";
+    const cls = classForStampId(stampId);
+    if (cls) el.classList.add("filled", cls);
+  }
+
+  // render calendar (dynamic weeks)
+  function renderCalendar(){
+    daysEl.innerHTML = "";
+
+    const first = new Date(YEAR, currentMonth - 1, 1);
+    const dim = daysInMonthOf(currentMonth);
+    const firstDow = first.getDay();
+
+    const cellsNeeded = firstDow + dim;
+    const weeks = Math.ceil(cellsNeeded / 7);
+    const totalCells = weeks * 7;
+
+    const showGoal = shouldShowGoalPreview();
+
+    for (let i=0; i<totalCells; i++){
+      const day = i - firstDow + 1;
+      const inMonth = day >= 1 && day <= dim;
+
+      const cell = document.createElement("div");
+      cell.className = "cell" + (inMonth ? "" : " empty");
+
+      const num = document.createElement("div");
+      num.className = "daynum";
+      num.textContent = inMonth ? String(day) : "";
+      cell.appendChild(num);
+
+      if (inMonth){
+        const key = ymd(currentMonth, day);
+        ensureDay(key);
+
+        if (key === selectedDate) cell.classList.add("selected");
+
+        if (showGoal){
+          const g = (state[key].diary && typeof state[key].diary.goal === "string") ? state[key].diary.goal : "";
+          const pv = goalPreviewText(g);
+          const pvEl = document.createElement("div");
+          pvEl.className = "goalPreview show" + (pv ? "" : " empty");
+          pvEl.textContent = pv || "—";
+          cell.appendChild(pvEl);
+        }
+
+        cell.addEventListener("click", () => {
+          hidePicker();
+          openDiary(key);
+        });
+
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "dot";
+        dot.setAttribute("aria-label", `${key} スタンプ`);
+
+        const cls = classForStampId(state[key].stampId);
+        if (cls) dot.classList.add("filled", cls);
+
+        dot.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (pickerEl.classList.contains("show") && pickerDate === key && pickerSource === "calendar"){
+            hidePicker();
+          } else {
+            showPickerNear(dot, key, "calendar");
+          }
+        });
+
+        cell.appendChild(dot);
+      }
+
+      daysEl.appendChild(cell);
+    }
+  }
+
+  // diary open
+  function openDiary(dateKey){
+    selectedDate = dateKey;
+    ensureDay(dateKey);
+    persist();
+
+    diaryWrap.style.display = "";
+    diaryPanel.classList.add("show");
+　　customPanel.classList.remove("show"); // 普段は出さない
+
+    slider.classList.remove("customize");
+
+    setView("calendar");
+    diaryDateEl.textContent = dateKey;
+    setDiaryStampFromDate(dateKey);
+
+    renderDiaryBlocks();
+    renderCalendar();
+
+    if (window.matchMedia("(max-width: 640px)").matches){
+      const rect = diaryWrap.getBoundingClientRect();
+      if (rect.top > window.innerHeight * 0.75){
+        window.scrollTo({ top: window.scrollY + (rect.top - window.innerHeight * 0.55), behavior: "smooth" });
+      }
+    }
+  }
+
+  // ===== Diary Blocks Rendering (based on settings.diaryLayout) =====
+  function renderDiaryBlocks(){
+    if (!selectedDate) return;
+    ensureDay(selectedDate);
+
+    diaryBlocksEl.innerHTML = "";
+
+    const layout = settings.diaryLayout || [];
+    for (const blk of layout){
+      if (!blk || !blk.visible) continue;
+
+      if (blk.type === "mood"){
+        diaryBlocksEl.appendChild(renderMoodBlock(blk));
+      } else if (blk.type === "goal"){
+        diaryBlocksEl.appendChild(renderGoalBlock(blk));
+      } else if (blk.type === "todo"){
+        diaryBlocksEl.appendChild(renderTodoBlock(blk));
+      } else if (blk.type === "memo"){
+        diaryBlocksEl.appendChild(renderMemoBlock(blk));
+      }
+    }
+  }
+
+  function renderMoodBlock(blk){
+    const wrap = document.createElement("div");
+    wrap.className = "moodWidget";
+
+    const title = document.createElement("div");
+    title.className = "moodTitle";
+    title.textContent = "今日の気分は？";
+    wrap.appendChild(title);
+
+    const row = document.createElement("div");
+    row.className = "moodRow";
+
+    const theme = getStampTheme();
+    const current = state[selectedDate].stampId;
+
+    if (current) row.classList.add("hasSelection");
+
+    for (const s of theme.stamps){
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = `moodPick ${s.className}`;
+      b.setAttribute("aria-label", s.label);
+
+      if (current && current === s.id){
+        b.classList.add("isSelected");
+      }
+
+      b.addEventListener("click", () => {
+        const next = (state[selectedDate].stampId === s.id) ? null : s.id;
+        applyStamp(selectedDate, next);
+      });
+
+      row.appendChild(b);
+    }
+
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  function renderGoalBlock(blk){
+    const section = document.createElement("div");
+    section.className = "section";
+
+    const head = document.createElement("div");
+    head.className = "sectionHead";
+
+    const left = document.createElement("div");
+    left.className = "sectionTitle";
+    left.innerHTML = `② ${escapeHtml(blk.name || "今日の目標")} <span class="chip">固定</span>`;
+    head.appendChild(left);
+
+    section.appendChild(head);
+
+    const input = document.createElement("input");
+    input.className = "goal";
+    input.type = "text";
+    input.placeholder = "1行で入力（自動保存）";
+    input.value = state[selectedDate].diary.goal || "";
+
+    input.addEventListener("input", () => {
+      ensureDay(selectedDate);
+      state[selectedDate].diary.goal = input.value || "";
+      persist();
+      renderCalendar();
+      if (viewMode === "list") renderList();
+      if (viewMode === "data") renderYearStats();
+    });
+
+    section.appendChild(input);
+    return section;
+  }
+
+  function renderTodoBlock(blk){
+    const section = document.createElement("div");
+    section.className = "section";
+
+    const head = document.createElement("div");
+    head.className = "sectionHead";
+
+    const title = document.createElement("div");
+    title.className = "sectionTitle";
+    title.textContent = `③ ${blk.name || "TODOリスト"}`;
+    head.appendChild(title);
+
+    const addBtn = document.createElement("button");
+    addBtn.className = "btn";
+    addBtn.type = "button";
+    addBtn.textContent = "＋";
+    addBtn.style.padding = "8px 10px";
+    addBtn.style.borderRadius = "12px";
+    head.appendChild(addBtn);
+
+    section.appendChild(head);
+
+    const list = document.createElement("div");
+    list.className = "todoList";
+    section.appendChild(list);
+
+    function renderTodos(){
+      ensureDay(selectedDate);
+      const todos = state[selectedDate].diary.todos;
+      list.innerHTML = "";
+
+      for (const t of todos){
+        const row = document.createElement("div");
+        row.className = "todoRow";
+
+        const chk = document.createElement("input");
+        chk.type = "checkbox";
+        chk.checked = !!t.done;
+
+        const txt = document.createElement("input");
+        txt.type = "text";
+        txt.className = "todoText";
+        txt.value = t.text || "";
+        txt.placeholder = "TODO";
+
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "todoDel";
+        del.textContent = "－";
+        del.setAttribute("aria-label", "この行を削除");
+
+        txt.addEventListener("focus", () => row.classList.add("showDel"));
+        txt.addEventListener("blur", () => setTimeout(() => row.classList.remove("showDel"), 120));
+
+        chk.addEventListener("change", () => {
+          ensureDay(selectedDate);
+          const dd = state[selectedDate].diary;
+          const item = dd.todos.find(x => x.id === t.id);
+          if (!item) return;
+          item.done = chk.checked;
+          persist();
+          if (viewMode === "list") renderList();
+        });
+
+        txt.addEventListener("input", () => {
+          ensureDay(selectedDate);
+          const dd = state[selectedDate].diary;
+          const item = dd.todos.find(x => x.id === t.id);
+          if (!item) return;
+          item.text = txt.value || "";
+          persist();
+          if (viewMode === "list") renderList();
+        });
+
+        del.addEventListener("click", () => {
+          ensureDay(selectedDate);
+          const dd = state[selectedDate].diary;
+          dd.todos = dd.todos.filter(x => x.id !== t.id);
+          if (dd.todos.length === 0){
+            dd.todos = [{ id: uid(), done:false, text:"" }];
+          }
+          persist();
+          renderTodos();
+          if (viewMode === "list") renderList();
+        });
+
+        row.appendChild(chk);
+        row.appendChild(txt);
+        row.appendChild(del);
+        list.appendChild(row);
+      }
+    }
+
+    addBtn.addEventListener("click", () => {
+      ensureDay(selectedDate);
+      state[selectedDate].diary.todos.push({ id: uid(), done:false, text:"" });
+      persist();
+      renderTodos();
+      if (viewMode === "list") renderList();
+      list.lastElementChild?.querySelector("input.todoText")?.focus();
+    });
+
+    renderTodos();
+    return section;
+  }
+
+  function renderMemoBlock(blk){
+    const section = document.createElement("div");
+    section.className = "section";
+
+    const head = document.createElement("div");
+    head.className = "sectionHead";
+
+    const title = document.createElement("div");
+    title.className = "sectionTitle";
+    title.textContent = `④ ${blk.name || "自由メモ"}`;
+    head.appendChild(title);
+
+    section.appendChild(head);
+
+    const ta = document.createElement("textarea");
+    ta.className = "memo";
+    ta.placeholder = "数行メモ（自動保存）";
+    ta.value = state[selectedDate].diary.memo || "";
+
+    ta.addEventListener("input", () => {
+      ensureDay(selectedDate);
+      state[selectedDate].diary.memo = ta.value || "";
+      persist();
+      if (viewMode === "list") renderList();
+      if (viewMode === "data") renderYearStats();
+    });
+
+    section.appendChild(ta);
+    return section;
+  }
+
+  function escapeHtml(s){
+    return String(s || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  // diary stamp dot picker (small dot in header)
+  diaryStampEl.addEventListener("click", (e) => {
+    if (!selectedDate) return;
+    e.stopPropagation();
+    if (pickerEl.classList.contains("show") && pickerDate === selectedDate && pickerSource === "diaryDot"){
+      hidePicker();
+    } else {
+      showPickerNear(diaryStampEl, selectedDate, "diaryDot");
+    }
+  });
+
+  // inline confirm delete-day
+  function showInlineConfirm(){ inlineConfirm.classList.add("show"); }
+  function hideInlineConfirm(){ inlineConfirm.classList.remove("show"); }
+
+  deleteDayBtn.addEventListener("click", () => {
+    if (!selectedDate) return;
+    if (inlineConfirm.classList.contains("show")) hideInlineConfirm();
+    else showInlineConfirm();
+  });
+  inlineNo.addEventListener("click", hideInlineConfirm);
+  inlineYes.addEventListener("click", () => {
+    if (!selectedDate) return;
+    const key = selectedDate;
+    delete state[key];
+    persist();
+    selectedDate = null;
+    diaryWrap.style.display = "none";
+    hideInlineConfirm();
+    renderCalendar();
+    if (viewMode === "list") renderList();
+    if (viewMode === "data") renderYearStats();
+  });
+
+  // ===== Customize Panel (骨格) =====
+  function openCustomize(){
+    if (!selectedDate) return;
+    customizeDraft = JSON.parse(JSON.stringify(settings.diaryLayout || defaultDiaryLayout()));
+    renderCustomizeList();
+    slider.classList.add("customize");
+  }
+  function closeCustomize(commit){
+    if (!customizeDraft) {
+      slider.classList.remove("customize");
+      return;
+    }
+    if (commit){
+      settings.diaryLayout = sanitizeLayout(customizeDraft);
+      saveSettings(settings);
+      renderDiaryBlocks();
+    }
+    customizeDraft = null;
+    slider.classList.remove("customize");
+  }
+
+  function sanitizeLayout(layout){
+    // mood must be 1st, goal must be 2nd
+    const safe = Array.isArray(layout) ? layout.filter(Boolean) : [];
+    const mood = safe.find(b => b.type === "mood") || { instanceId:"blk_mood_fixed", type:"mood", name:BLOCK_TEMPLATES.mood.defaultName, visible:true };
+    const goal = safe.find(b => b.type === "goal") || { instanceId:"blk_goal_fixed", type:"goal", name:BLOCK_TEMPLATES.goal.defaultName, visible:true };
+
+    // remove duplicates of mood/goal (keep first)
+    const rest = safe.filter(b => b.type !== "mood" && b.type !== "goal");
+
+    // normalize fields
+    function norm(b){
+      const t = BLOCK_TEMPLATES[b.type];
+      return {
+        instanceId: (typeof b.instanceId === "string") ? b.instanceId : uid(),
+        type: b.type,
+        name: (typeof b.name === "string" && b.name.trim()) ? b.name.trim() : (t?.defaultName || b.type),
+        visible: (b.visible !== false)
+      };
+    }
+
+    const out = [norm(mood), norm(goal), ...rest.map(norm)];
+
+    // enforce lockName for mood
+    out[0].name = BLOCK_TEMPLATES.mood.defaultName;
+
+    return out;
+  }
+
+  function renderCustomizeList(){
+    if (!customizeDraft) return;
+    blockListEl.innerHTML = "";
+
+    // ensure lock positions in UI as well
+    customizeDraft = sanitizeLayout(customizeDraft);
+
+    for (let i=0; i<customizeDraft.length; i++){
+      const blk = customizeDraft[i];
+      const tpl = BLOCK_TEMPLATES[blk.type];
+
+      const card = document.createElement("div");
+      card.className = "blockCard";
+
+      const top = document.createElement("div");
+      top.className = "blockTop";
+
+      const name = document.createElement("div");
+      name.className = "blockName";
+
+      const title = document.createElement("strong");
+      title.textContent = blk.name || tpl?.defaultName || blk.type;
+
+      name.appendChild(title);
+
+      if (tpl?.lockOrder){
+        const lock = document.createElement("span");
+        lock.className = "lockTag";
+        lock.textContent = "固定";
+        name.appendChild(lock);
+      }
+
+      top.appendChild(name);
+
+      const actions = document.createElement("div");
+      actions.className = "blockActions";
+
+      // rename (pencil) - mood不可
+      const renameBtn = document.createElement("button");
+      renameBtn.className = "tinyBtn";
+      renameBtn.type = "button";
+      renameBtn.title = "名前を編集";
+      renameBtn.innerHTML = "✎";
+      renameBtn.disabled = !!tpl?.lockName;
+
+      // up/down (mood+goal fixed)
+      const upBtn = document.createElement("button");
+      upBtn.className = "tinyBtn";
+      upBtn.type = "button";
+      upBtn.title = "上へ";
+      upBtn.textContent = "↑";
+      upBtn.disabled = (i <= 2); // 0 mood,1 goal fixed, index2 is first movable
+      if (tpl?.lockOrder) upBtn.disabled = true;
+
+      const downBtn = document.createElement("button");
+      downBtn.className = "tinyBtn";
+      downBtn.type = "button";
+      downBtn.title = "下へ";
+      downBtn.textContent = "↓";
+      downBtn.disabled = (i >= customizeDraft.length - 1);
+      if (tpl?.lockOrder) downBtn.disabled = true;
+
+      actions.appendChild(renameBtn);
+      actions.appendChild(upBtn);
+      actions.appendChild(downBtn);
+
+      top.appendChild(actions);
+      card.appendChild(top);
+
+      const bottom = document.createElement("div");
+      bottom.className = "blockBottom";
+
+      const sw = document.createElement("label");
+      sw.className = "switch";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = blk.visible !== false;
+      cb.disabled = (blk.type === "mood" || blk.type === "goal"); // 仕様：削除不可・固定表示（まずは）
+      const span = document.createElement("span");
+      span.textContent = cb.disabled ? "表示（固定）" : "表示";
+      sw.appendChild(cb);
+      sw.appendChild(span);
+
+      bottom.appendChild(sw);
+      card.appendChild(bottom);
+
+      const renameRow = document.createElement("div");
+      renameRow.className = "renameRow";
+
+      const renameInput = document.createElement("input");
+      renameInput.type = "text";
+      renameInput.value = blk.name || "";
+      renameInput.placeholder = "ブロック名";
+
+      const renameOk = document.createElement("button");
+      renameOk.className = "btn";
+      renameOk.type = "button";
+      renameOk.textContent = "保存";
+      renameOk.style.minWidth = "90px";
+
+      renameRow.appendChild(renameInput);
+      renameRow.appendChild(renameOk);
+
+      card.appendChild(renameRow);
+
+      // events
+      renameBtn.addEventListener("click", () => {
+        renameRow.classList.toggle("show");
+        if (renameRow.classList.contains("show")) renameInput.focus();
+      });
+
+      renameOk.addEventListener("click", () => {
+        blk.name = (renameInput.value || "").trim() || (tpl?.defaultName || blk.type);
+        // mood name lock
+        if (blk.type === "mood") blk.name = BLOCK_TEMPLATES.mood.defaultName;
+        renderCustomizeList();
+      });
+
+      upBtn.addEventListener("click", () => {
+        if (i <= 2) return;
+        const tmp = customizeDraft[i-1];
+        customizeDraft[i-1] = customizeDraft[i];
+        customizeDraft[i] = tmp;
+        renderCustomizeList();
+      });
+
+      downBtn.addEventListener("click", () => {
+        if (i >= customizeDraft.length - 1) return;
+        const tmp = customizeDraft[i+1];
+        customizeDraft[i+1] = customizeDraft[i];
+        customizeDraft[i] = tmp;
+        renderCustomizeList();
+      });
+
+      cb.addEventListener("change", () => {
+        blk.visible = cb.checked;
+      });
+
+      blockListEl.appendChild(card);
+    }
+  }
+
+  openCustomizeBtn.addEventListener("click", () => {
+  if (!selectedDate) return;
+
+  calendarPanel.classList.add("hidden");
+  dowRow.classList.add("hidden");
+
+  customPanel.classList.add("show");
+  openCustomize();
+});
+
+  function exitCustomizeAndShowCalendar(){
+  calendarPanel.classList.remove("hidden");
+  dowRow.classList.remove("hidden");
+  customPanel.classList.remove("show"); // ←追加
+}
+
+  closeCustomizeBtn.addEventListener("click", () => {
+    closeCustomize(false);
+    exitCustomizeAndShowCalendar();
+  });
+  cancelCustomizeBtn.addEventListener("click", () => {
+    closeCustomize(false);
+    exitCustomizeAndShowCalendar();
+  });
+  saveCustomizeBtn.addEventListener("click", () => {
+    closeCustomize(true);
+    exitCustomizeAndShowCalendar();
+  });
+
+  // list
+  function escapePreview(s){ return (s || "").slice(0, 160); }
+
+  function renderList(){
+    const dim = daysInMonthOf(currentMonth);
+    let filledCount = 0;
+    listBodyEl.innerHTML = "";
+
+    for (let day=1; day<=dim; day++){
+      const key = ymd(currentMonth, day);
+      ensureDay(key);
+
+      const item = document.createElement("div");
+      item.className = "listItem";
+
+      const head = document.createElement("div");
+      head.className = "listItemHead";
+
+      const left = document.createElement("div");
+      left.className = "listLeft";
+
+      const stamp = document.createElement("div");
+      setMiniStampClass(stamp, state[key].stampId);
+
+      const date = document.createElement("div");
+      date.className = "listDate";
+      date.textContent = key;
+
+      left.appendChild(stamp);
+      left.appendChild(date);
+
+      const editBtn = document.createElement("button");
+      editBtn.className = "btn";
+      editBtn.type = "button";
+      editBtn.textContent = "編集";
+      editBtn.addEventListener("click", () => {
+        openDiary(key);
+        setView("calendar");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+
+      head.appendChild(left);
+      head.appendChild(editBtn);
+
+      const preview = document.createElement("div");
+      const d = state[key].diary;
+
+      const hasAny =
+        (state[key].stampId) ||
+        (d.goal && d.goal.trim()) ||
+        (d.memo && d.memo.trim()) ||
+        (d.todos && d.todos.some(t => (t.text||"").trim() || t.done));
+
+      if (hasAny) filledCount++;
+
+      const todoLines = (d.todos || [])
+        .filter(t => (t.text||"").trim() || t.done)
+        .slice(0, 3)
+        .map(t => `${t.done ? "☑" : "☐"} ${t.text || ""}`.trim())
+        .join("\n");
+
+      const parts = [];
+      if (d.goal && d.goal.trim()) parts.push(`目標：${escapePreview(d.goal.trim())}`);
+      if (todoLines) parts.push(todoLines);
+      if (d.memo && d.memo.trim()) parts.push(escapePreview(d.memo.trim()));
+
+      preview.className = "preview" + (parts.length ? "" : " muted");
+      preview.textContent = parts.length ? parts.join("\n") : "（未記入）";
+
+      item.appendChild(head);
+      item.appendChild(preview);
+      listBodyEl.appendChild(item);
+    }
+
+    listBadgeEl.textContent = `${filledCount}/${dim} 日 記入あり`;
+  }
+
+  // stats
+  function monthState(month){
+    return (month === currentMonth) ? state : loadStateForMonth(month);
+  }
+  function countRecordedDaysForMonth(month){
+    const dim = daysInMonthOf(month);
+    const st = monthState(month);
+    let used = 0;
+    for (let day=1; day<=dim; day++){
+      const key = ymd(month, day);
+      const it = st[key];
+      if (!it) continue;
+      const d = it.diary || {};
+      const hasAny =
+        (it.stampId) ||
+        (d.goal && d.goal.trim()) ||
+        (d.memo && d.memo.trim()) ||
+        (Array.isArray(d.todos) && d.todos.some(t => (t.text||"").trim() || t.done));
+      if (hasAny) used++;
+    }
+    return { used, dim };
+  }
+
+  function renderYearStats(){
+    let total = 0;
+    const monthLines = [];
+    for (let m=MIN_MONTH; m<=MAX_MONTH; m++){
+      const { used } = countRecordedDaysForMonth(m);
+      total += used;
+      monthLines.push({ m, used });
+    }
+
+    yearTotalEl.textContent = `${total}日`;
+
+    monthBreakdownEl.innerHTML = "";
+    for (const x of monthLines){
+      const line = document.createElement("div");
+      line.className = "monthLine";
+      const left = document.createElement("span");
+      left.textContent = `${x.m}月`;
+      const right = document.createElement("span");
+      right.textContent = `${x.used}日`;
+      line.appendChild(left);
+      line.appendChild(right);
+      monthBreakdownEl.appendChild(line);
+    }
+
+    monthBreakdownEl.classList.toggle("show", breakdownOpen);
+  }
+
+  toggleBreakdownBtn.addEventListener("click", () => {
+    breakdownOpen = !breakdownOpen;
+    toggleBreakdownBtn.textContent = breakdownOpen ? "▲詳細を閉じる" : "▼詳細表示";
+    renderYearStats();
+  });
+
+  // bulk export/import
+  function clampRange(a,b){
+    const from = Math.max(MIN_MONTH, Math.min(MAX_MONTH, a));
+    const to = Math.max(MIN_MONTH, Math.min(MAX_MONTH, b));
+    return (from <= to) ? { from, to } : { from: to, to: from };
+  }
+
+  bulkExportBtn.addEventListener("click", () => {
+    const r = clampRange(Number(bulkFrom.value), Number(bulkTo.value));
+    const months = {};
+    for (let m=r.from; m<=r.to; m++){
+      months[String(m).padStart(2,'0')] = loadStateForMonth(m);
+    }
+
+    const payload = {
+      app: "StickerCalendar",
+      version: APP_VERSION,
+      type: "bulk",
+      year: YEAR,
+      fromMonth: r.from,
+      toMonth: r.to,
+      exportedAt: new Date().toISOString(),
+      settings,
+      months
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sticker-calendar-${YEAR}-${String(r.from).padStart(2,'0')}-${String(r.to).padStart(2,'0')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  });
+
+  bulkImportBtn.addEventListener("click", async () => {
+    const file = bulkImportFile.files && bulkImportFile.files[0];
+    if (!file) return;
+
+    let text = "";
+    try { text = await file.text(); } catch { return; }
+
+    let payload = null;
+    try { payload = JSON.parse(text); } catch { return; }
+
+    const monthsObj = payload?.months && typeof payload.months === "object" ? payload.months : null;
+    if (!monthsObj) return;
+
+    const ok = window.confirm("データ読み込みを実行しますか？\n（データがある月のみ上書きされます）");
+    if (!ok) return;
+
+    if (payload?.settings && typeof payload.settings === "object"){
+      const incomingTheme = payload.settings.stampThemeId;
+      if (typeof incomingTheme === "string"){
+        settings.stampThemeId = incomingTheme;
+      }
+      if (Array.isArray(payload.settings.diaryLayout)){
+        settings.diaryLayout = sanitizeLayout(payload.settings.diaryLayout);
+      }
+      saveSettings(settings);
+    }
+
+    for (let m=MIN_MONTH; m<=MAX_MONTH; m++){
+      const key = String(m).padStart(2,'0');
+      if (Object.prototype.hasOwnProperty.call(monthsObj, key)){
+        const incoming = monthsObj[key];
+        if (incoming && typeof incoming === "object"){
+          saveStateForMonth(m, incoming);
+        }
+      }
+    }
+
+    state = loadStateForMonth(currentMonth);
+    selectedDate = null;
+    diaryWrap.style.display = "none";
+    hidePicker();
+    hideInlineConfirm();
+    renderCalendar();
+    if (viewMode === "list") renderList();
+    if (viewMode === "data") renderYearStats();
+  });
+
+  resetAllBtn.addEventListener("click", () => {
+    const ok = window.confirm("本当に削除しますか？\n（全ての月データが削除されます。）");
+    if (!ok) return;
+
+    for (let m=MIN_MONTH; m<=MAX_MONTH; m++){
+      localStorage.removeItem(storageKey(m));
+    }
+
+    state = loadStateForMonth(currentMonth);
+    selectedDate = null;
+    diaryWrap.style.display = "none";
+    hidePicker();
+    hideInlineConfirm();
+    renderCalendar();
+    if (viewMode === "list") renderList();
+    if (viewMode === "data") renderYearStats();
+  });
+
+  // hide picker when clicking outside
+  document.addEventListener("pointerdown", (e) => {
+    const inPicker = e.target.closest("#picker");
+    const isDot = e.target.closest(".dot") || e.target.closest("#diaryStamp");
+    if (!inPicker && !isDot) hidePicker();
+  });
+
+  // calendar dot popup
+  function showDotPickerFor(key, el){
+    if (pickerEl.classList.contains("show") && pickerDate === key && pickerSource === "calendar"){
+      hidePicker();
+    } else {
+      showPickerNear(el, key, "calendar");
+    }
+  }
+
+  // calendar click handlers already set in renderCalendar
+
+  // close menu on Esc already
+
+  // init
+  renderCalendar();
+  setView("calendar");
+
+})();

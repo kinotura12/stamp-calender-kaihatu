@@ -1,5 +1,8 @@
-// 役割：VS Code 用のワークスペース設定
 {
-  "files.encoding": "utf8",
-  "files.autoGuessEncoding": false
+  "terminal.integrated.profiles.windows": {
+    "PowerShell 7": {
+      "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell 7"
 }
