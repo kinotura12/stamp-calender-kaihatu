@@ -39,6 +39,20 @@
         { mood: "mood_4", label: "低め", color: "#cc5f9e", className: "mood-dark-4" },
         { mood: "mood_5", label: "最低", color: "#7a8ba0", className: "mood-dark-5" },
       ]
+    },
+    neko_test: {
+      id: "neko_test",
+      name: "Test Neko",
+      schemaVersion: 1,
+      basePath: "img/",
+      hash: "",
+      stamps: [
+        { mood: "mood_1", label: "Neko Happy", renderMode: "img-tag", asset: "test_neko_stamp.png", className: "neko-1", shape: "circle", color: "#ff6fae" },
+        { mood: "mood_2", label: "Neko Good",  renderMode: "img-tag", asset: "test_neko_stamp.png", className: "neko-2", shape: "circle", color: "#ffb347" },
+        { mood: "mood_3", label: "Neko Neutral", renderMode: "img-tag", asset: "test_neko_stamp.png", className: "neko-3", shape: "circle", color: "#74d5ff" },
+        { mood: "mood_4", label: "Neko Low",   renderMode: "img-tag", asset: "test_neko_stamp.png", className: "neko-4", shape: "circle", color: "#a18ae8" },
+        { mood: "mood_5", label: "Neko Sad",   renderMode: "img-tag", asset: "test_neko_stamp.png", className: "neko-5", shape: "circle", color: "#8ba0b3" },
+      ]
     }
     // 将来: ネコ系/季節系など追加
   };
@@ -791,6 +805,16 @@
       img.decoding = "async";
       img.loading = "lazy";
       img.src = assetUrl;
+      img.onerror = () => {
+        img.remove();
+        // fallback to color/class if image fails
+        if (col){
+          el.style.backgroundColor = col;
+          el.classList.add("filled");
+        } else if (cls){
+          el.classList.add("filled");
+        }
+      };
       el.appendChild(img);
       el.classList.add("filled");
       return;
