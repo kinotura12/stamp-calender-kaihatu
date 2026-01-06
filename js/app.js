@@ -7,16 +7,17 @@
   const APP_VERSION = "1.4.0";
 
   // ===== Theme registries =====
+  const STAMP_MOODS = ["mood_1","mood_2","mood_3","mood_4","mood_5"];
   const STAMP_THEMES = {
     default_dots: {
       id: "default_dots",
       name: "Color Dots",
       stamps: [
-        { id: "dot_pink",   label: "Color Dot Pink",       className: "pink" },
-        { id: "dot_orange", label: "Color Dot Orange",     className: "orange" },
-        { id: "dot_yellow", label: "Color Dot Yellow",     className: "yellow" },
-        { id: "dot_green",  label: "Color Dot Green",      className: "green" },
-        { id: "dot_blue",   label: "Color Dot Light Blue", className: "blue" },
+        { mood: "mood_1", label: "Mood 1", className: "pink", color: "#ff6fae" },
+        { mood: "mood_2", label: "Mood 2", className: "orange", color: "#ff9a4a" },
+        { mood: "mood_3", label: "Mood 3", className: "yellow", color: "#ffd55a" },
+        { mood: "mood_4", label: "Mood 4", className: "green", color: "#6ee38b" },
+        { mood: "mood_5", label: "Mood 5", className: "blue", color: "#62c7ff" },
       ]
     }
     // 将来: ネコ系/季節系など追加
@@ -143,6 +144,18 @@
 
   const DEFAULT_STAMP_THEME_ID = "default_dots";
   const DEFAULT_UI_THEME_ID = "ui_dark_default";
+  const LEGACY_STAMP_ID_MAP = {
+    dot_pink: "mood_1",
+    dot_orange: "mood_2",
+    dot_yellow: "mood_3",
+    dot_green: "mood_4",
+    dot_blue: "mood_5",
+    pink: "mood_1",
+    orange: "mood_2",
+    yellow: "mood_3",
+    green: "mood_4",
+    blue: "mood_5"
+  };
 
   // UI theme token registry (fixed list; values change per theme)
   const UI_TOKEN_KEYS = [
@@ -235,8 +248,27 @@
   const menuDataBtn = document.getElementById("menuData");
 
   // storage
+  function sanitizeMonthData(raw){
+    const out = {};
+    if (!raw || typeof raw !== "object") return out;
+    for (const [k,v] of Object.entries(raw)){
+      if (!v || typeof v !== "object") continue;
+      const day = { ...v };
+      day.stampId = normalizeStampId(day.stampId);
+      if (day.stamp !== undefined && day.stampId === undefined){
+        day.stampId = normalizeStampId(day.stamp);
+        delete day.stamp;
+      }
+      if (!day.diary || typeof day.diary !== "object"){
+        day.diary = { goal:"", todos:[], memo:"" };
+      }
+      out[k] = day;
+    }
+    return out;
+  }
   function loadStateForMonth(month){
-    return window.storageApi.loadMonthData(month) || {};
+    const raw = window.storageApi.loadMonthData(month) || {};
+    return sanitizeMonthData(raw);
   }
   function saveStateForMonth(month, obj){
     window.storageApi.saveMonthData(month, obj);
@@ -297,6 +329,7 @@
     window.storageApi.saveSettings(payload);
   }
   let settings = loadSettings();
+  let resolvedStampTheme = resolveStampTheme(settings.stampThemeId);
 
   // customize draft (cancelできるように)
   let customizeDraft = null;
@@ -314,6 +347,25 @@
     return UI_THEMES[themeId] ? themeId : DEFAULT_UI_THEME_ID;
   }
 
+  function resolveStampTheme(themeId){
+    const base = STAMP_THEMES[DEFAULT_STAMP_THEME_ID];
+    const req = STAMP_THEMES[themeId] || base;
+    const byMood = new Map();
+    for (const mood of STAMP_MOODS){
+      // base -> requested override
+      const baseEntry = (base.stamps || []).find(s => s.mood === mood) || {};
+      const reqEntry = (req.stamps || []).find(s => s.mood === mood) || {};
+      byMood.set(mood, {
+        mood,
+        label: reqEntry.label || baseEntry.label || mood,
+        className: reqEntry.className || baseEntry.className || null,
+        color: reqEntry.color || baseEntry.color || null,
+        asset: reqEntry.asset || baseEntry.asset || null
+      });
+    }
+    return { id: req.id || DEFAULT_STAMP_THEME_ID, byMood };
+  }
+
   function getStampThemeIdForMonth(yyyyMm){
     const byMonth = settings.themeByMonth || {};
     if (byMonth && typeof byMonth[yyyyMm] === "string") return byMonth[yyyyMm];
@@ -321,7 +373,10 @@
   }
 
   function applyStampTheme(themeId){
-    settings.stampThemeId = validStampThemeId(themeId || settings.stampThemeId);
+    const { id, byMood } = resolveStampTheme(themeId || settings.stampThemeId);
+    settings.stampThemeId = id;
+    resolvedStampTheme = { id, byMood };
+    renderStampPickerButtons();
   }
 
   function resolveUiTheme(themeId){
@@ -371,12 +426,17 @@
   }
 
   function getStampTheme(){
-    return STAMP_THEMES[settings.stampThemeId] || STAMP_THEMES[DEFAULT_STAMP_THEME_ID];
+    return resolvedStampTheme;
+  }
+  function getStampEntry(moodId){
+    return resolvedStampTheme.byMood.get(moodId);
   }
   function stampIndexById(){
-    const theme = getStampTheme();
     const map = new Map();
-    for (const s of theme.stamps) map.set(s.id, s);
+    for (const mood of STAMP_MOODS){
+      const entry = getStampEntry(mood);
+      if (entry) map.set(mood, entry);
+    }
     return map;
   }
 
@@ -387,24 +447,26 @@
     return `${YEAR}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
   }
 
-  // backward compat
-  const legacyColorToStampId = {
-    pink: "dot_pink",
-    orange: "dot_orange",
-    yellow: "dot_yellow",
-    green: "dot_green",
-    blue: "dot_blue"
-  };
+  function normalizeStampId(stampId){
+    if (!stampId) return null;
+    if (STAMP_MOODS.includes(stampId)) return stampId;
+    if (LEGACY_STAMP_ID_MAP[stampId]) return LEGACY_STAMP_ID_MAP[stampId];
+    return null;
+  }
 
   function ensureDay(dateKey){
     if (!state[dateKey]) state[dateKey] = { stampId: null, diary: { goal:"", todos: [], memo:"" } };
 
     if (state[dateKey].stamp !== undefined && state[dateKey].stampId === undefined){
       const legacy = state[dateKey].stamp;
-      state[dateKey].stampId = legacy ? (legacyColorToStampId[legacy] || null) : null;
+      state[dateKey].stampId = normalizeStampId(legacy);
       delete state[dateKey].stamp;
     }
-    if (state[dateKey].stampId === undefined) state[dateKey].stampId = null;
+    if (state[dateKey].stampId !== undefined){
+      state[dateKey].stampId = normalizeStampId(state[dateKey].stampId);
+    } else {
+      state[dateKey].stampId = null;
+    }
 
     if (!state[dateKey].diary) state[dateKey].diary = { goal:"", todos: [], memo:"" };
 
@@ -584,15 +646,61 @@
     caretEl.style.top = `${caretTop}px`;
   }
 
-  function classForStampId(stampId){
-    if (!stampId) return null;
+  function renderStampPickerButtons(){
+    const row = pickerEl.querySelector(".pickerRow");
+    const miniDot = pickerEl.querySelector(".pickerTitle .miniDot");
+    if (!row) return;
+    row.innerHTML = "";
     const map = stampIndexById();
-    return map.get(stampId)?.className || null;
+    for (const mood of STAMP_MOODS){
+      const entry = map.get(mood) || { label: mood };
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "pick";
+      if (entry.className) b.classList.add(entry.className);
+      if (entry.color) b.style.background = entry.color;
+      b.dataset.stamp = mood;
+      b.setAttribute("aria-label", entry.label || mood);
+      row.appendChild(b);
+    }
+    if (miniDot){
+      const first = map.get(STAMP_MOODS[0]);
+      miniDot.style.background = first?.color || "";
+      miniDot.className = "miniDot";
+      if (first?.className) miniDot.classList.add(first.className);
+    }
+  }
+
+  function classForStampId(stampId){
+    const mood = normalizeStampId(stampId);
+    if (!mood) return null;
+    const entry = getStampEntry(mood);
+    return entry?.className || null;
+  }
+  function colorForStampId(stampId){
+    const mood = normalizeStampId(stampId);
+    if (!mood) return null;
+    const entry = getStampEntry(mood);
+    return entry?.color || null;
+  }
+
+  function applyStampVisual(el, stampId, baseClass){
+    el.className = baseClass;
+    el.style.backgroundColor = "";
+    const mood = normalizeStampId(stampId);
+    if (!mood) return;
+    const cls = classForStampId(mood);
+    const col = colorForStampId(mood);
+    if (cls) el.classList.add("filled", cls);
+    if (col){
+      el.style.backgroundColor = col;
+      el.classList.add("filled");
+    }
   }
 
   function applyStamp(dateKey, stampIdOrNull){
     ensureDay(dateKey);
-    state[dateKey].stampId = stampIdOrNull;
+    state[dateKey].stampId = normalizeStampId(stampIdOrNull);
     persist();
 
     renderCalendar();
@@ -627,14 +735,10 @@
   function setDiaryStampFromDate(dateKey){
     ensureDay(dateKey);
     const stampId = state[dateKey].stampId;
-    diaryStampEl.className = "diaryStamp";
-    const cls = classForStampId(stampId);
-    if (cls) diaryStampEl.classList.add("filled", cls);
+    applyStampVisual(diaryStampEl, stampId, "diaryStamp");
   }
   function setMiniStampClass(el, stampId){
-    el.className = "miniStamp";
-    const cls = classForStampId(stampId);
-    if (cls) el.classList.add("filled", cls);
+    applyStampVisual(el, stampId, "miniStamp");
   }
 
   // render calendar (dynamic weeks)
@@ -692,7 +796,9 @@
         dot.setAttribute("aria-label", `${key} スタンプ`);
 
         const cls = classForStampId(state[key].stampId);
+        const col = colorForStampId(state[key].stampId);
         if (cls) dot.classList.add("filled", cls);
+        if (col) dot.style.background = col;
 
         dot.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -773,23 +879,25 @@
     const row = document.createElement("div");
     row.className = "moodRow";
 
-    const theme = getStampTheme();
     const current = state[selectedDate].stampId;
 
     if (current) row.classList.add("hasSelection");
 
-    for (const s of theme.stamps){
+    for (const mood of STAMP_MOODS){
+      const entry = getStampEntry(mood) || { label: mood };
       const b = document.createElement("button");
       b.type = "button";
-      b.className = `moodPick ${s.className}`;
-      b.setAttribute("aria-label", s.label);
+      b.className = "moodPick";
+      if (entry.className) b.classList.add(entry.className);
+      if (entry.color) b.style.background = entry.color;
+      b.setAttribute("aria-label", entry.label || mood);
 
-      if (current && current === s.id){
+      if (current && current === mood){
         b.classList.add("isSelected");
       }
 
       b.addEventListener("click", () => {
-        const next = (state[selectedDate].stampId === s.id) ? null : s.id;
+        const next = (state[selectedDate].stampId === mood) ? null : mood;
         applyStamp(selectedDate, next);
       });
 
@@ -1326,9 +1434,12 @@
 
       const moodRow = document.createElement("div");
       moodRow.className = "thumbMoodRow";
-      ["pink","orange","yellow","green","blue"].forEach(c => {
+      STAMP_MOODS.forEach((mood, idx) => {
+        const c = ["pink","orange","yellow","green","blue"][idx] || "";
         const dot = document.createElement("div");
         dot.className = "thumbMoodDot " + c;
+        const entry = getStampEntry(mood);
+        if (entry?.color) dot.style.background = entry.color;
         moodRow.appendChild(dot);
       });
 
