@@ -573,10 +573,6 @@
     settings.uiThemeId = id;
   }
 
-  function getStampTheme(){
-    return resolvedStampTheme;
-  }
-
   function ensureDay(dateKey){
     if (!state[dateKey]) state[dateKey] = { stampId: null, diary: { goal:"", todos: [], memo:"" } };
 
@@ -797,19 +793,6 @@
       const first = map.get(STAMP_MOODS[0]);
       renderStamp(miniDot, first || null, { baseClass: "miniDot", basePath: resolvedStampTheme.basePath });
     }
-  }
-
-  function classForStampId(stampId){
-    const mood = normalizeStampId(stampId);
-    if (!mood) return null;
-    const entry = getStampDef(resolvedStampTheme, mood);
-    return entry?.className || null;
-  }
-  function colorForStampId(stampId){
-    const mood = normalizeStampId(stampId);
-    if (!mood) return null;
-    const entry = getStampDef(resolvedStampTheme, mood);
-    return entry?.color || null;
   }
 
   // entry is resolved by caller; this stays entry-only.
