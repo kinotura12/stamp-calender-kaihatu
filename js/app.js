@@ -832,17 +832,32 @@
     const assetUrl = entry.asset ? resolveAssetUrl(basePath, entry.asset) : "";
     const mode = entry.renderMode || "color";
 
-    if (cls) el.classList.add(cls);
-    if (shape) el.classList.add(`shape-${shape}`);
+    function applyFallback(){
+      if (cls) el.classList.add(cls);
+      if (shape) el.classList.add(`shape-${shape}`);
+      if (col){
+        el.style.backgroundColor = col;
+        el.classList.add("filled");
+      } else if (cls){
+        el.classList.add("filled");
+      }
+    }
 
     if (mode === "img-tag" && assetUrl){
       const img = document.createElement("img");
       img.className = "stampImg";
       img.decoding = "async";
       img.loading = "lazy";
+      img.onload = () => {
+        el.classList.add("imgStamp");
+      };
+      img.onerror = () => {
+        img.remove();
+        el.classList.remove("imgStamp");
+        applyFallback();
+      };
       img.src = assetUrl;
       el.appendChild(img);
-      el.classList.add("filled");
       return;
     }
 
@@ -851,17 +866,12 @@
       el.style.backgroundSize = "contain";
       el.style.backgroundRepeat = "no-repeat";
       el.style.backgroundPosition = "center";
-      el.classList.add("filled");
+      el.classList.add("imgStamp");
       return;
     }
 
     // fallback: color
-    if (col){
-      el.style.backgroundColor = col;
-      el.classList.add("filled");
-    } else if (cls){
-      el.classList.add("filled");
-    }
+    applyFallback();
   }
 
   function applyStamp(dateKey, stampIdOrNull){
@@ -1568,7 +1578,8 @@
         day.appendChild(dayDate);
         if (i===2){
           const dayStamp = document.createElement("div");
-          dayStamp.className = "thumbDayStamp";
+          const entry = getStampDef(resolvedStampTheme, STAMP_MOODS[0]);
+          renderStamp(dayStamp, entry, { baseClass: "thumbDayStamp", basePath: resolvedStampTheme.basePath });
           day.appendChild(dayStamp);
         }
         calRow.appendChild(day);
@@ -1584,7 +1595,8 @@
       const diaryTop = document.createElement("div");
       diaryTop.className = "thumbDiaryTop";
       const diaryStamp = document.createElement("div");
-      diaryStamp.className = "thumbDiaryStamp";
+      const diaryEntry = getStampDef(resolvedStampTheme, STAMP_MOODS[1]);
+      renderStamp(diaryStamp, diaryEntry, { baseClass: "thumbDiaryStamp", basePath: resolvedStampTheme.basePath });
       const diaryDate = document.createElement("div");
       diaryDate.textContent = `${YEAR}-${String(currentMonth).padStart(2,"0")}-26`;
       diaryTop.appendChild(diaryStamp);

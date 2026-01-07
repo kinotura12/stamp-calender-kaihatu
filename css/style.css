@@ -379,8 +379,8 @@
       position:absolute;
       right: 8px;
       bottom: 8px;
-      width: 20px;
-      height: 20px;
+      width: var(--stamp-m);
+      height: var(--stamp-m);
       border-radius: 999px;
       border: 2px solid var(--ring);
       background: transparent;
@@ -434,8 +434,8 @@
     }
 
     .pick{
-      width: 22px;
-      height: 22px;
+      width: var(--stamp-m);
+      height: var(--stamp-m);
       border-radius: 999px;
       border: 2px solid rgba(255,255,255,.22);
       box-shadow: 0 10px 22px rgba(0,0,0,.35);
@@ -1558,10 +1558,10 @@
         aspect-ratio: 1 / 1.07;
         padding: 7px;
       }
-      .dot{ width: 18px; height: 18px; right: 7px; bottom: 7px; }
+      .dot{ width: var(--stamp-m); height: var(--stamp-m); right: 7px; bottom: 7px; }
 
       .grid.calendarPanel{ max-height: 72vh; }
-      .moodPick{ width: 32px; height: 32px; }
+      .moodPick{ width: var(--stamp-l); height: var(--stamp-l); }
     }
 
     @media (min-width: 760px){
@@ -1571,6 +1571,11 @@
     }
 
     /* ===== stamp sizing (S/M/L) ===== */
+    :root{
+      --stamp-s: 16px;
+      --stamp-m: 24px;
+      --stamp-l: 28px;
+    }
     .dot,
     .diaryStamp,
     .moodPick,
@@ -1584,24 +1589,42 @@
       box-sizing: border-box;
       padding: 0;
     }
-    /* S */
-    .dot,
-    .miniStamp{
-      width: 18px;
-      height: 18px;
+    .imgStamp{
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      overflow: visible !important;
+      padding: 0 !important;
+    }
+    .imgStamp .stampImg{
+      filter: drop-shadow(0 3px 8px rgba(0,0,0,.35));
+    }
+    .thumbDayStamp,
+    .thumbDiaryStamp,
+    .miniStamp,
+    .diaryStamp{
+      width: var(--stamp-s);
+      height: var(--stamp-s);
     }
     /* M */
-    .diaryStamp,
+    .pick{
+      width: var(--stamp-s);
+      height: var(--stamp-s);
+    }
+    .dot,
+    .thumbMoodDot{
+      width: var(--stamp-m);
+      height: var(--stamp-m);
+    }
     .moodPick{
-      width: 28px;
-      height: 28px;
+      width: var(--stamp-l);
+      height: var(--stamp-l);
     }
     /* L */
-    .stampPreviewDot,
-    .thumbMoodDot,
-    .thumbDiaryStamp{
-      width: 26px;
-      height: 26px;
+    .stampPreviewDot{
+      width: var(--stamp-l);
+      height: var(--stamp-l);
     }
   
     /* ===== light theme overrides ===== */
