@@ -7,7 +7,7 @@
   const APP_VERSION = "1.4.0";
   const APP_SCHEMA_VERSION = 1;
 
-  // ===== Theme registries =====
+  // ===== Theme =====
   const STAMP_MOODS = ["mood_1","mood_2","mood_3","mood_4","mood_5"];
   const STAMP_THEME_SUPPORTED_VERSIONS = [1];
   const UI_THEME_SUPPORTED_VERSIONS = [1];
@@ -172,29 +172,6 @@
 
   const DEFAULT_STAMP_THEME_ID = "default_dots";
   const DEFAULT_UI_THEME_ID = "ui_dark_default";
-  const LEGACY_STAMP_ID_MAP = {
-    dot_pink: "mood_1",
-    dot_orange: "mood_2",
-    dot_yellow: "mood_3",
-    dot_green: "mood_4",
-    dot_blue: "mood_5",
-    pink: "mood_1",
-    orange: "mood_2",
-    yellow: "mood_3",
-    green: "mood_4",
-    blue: "mood_5"
-  };
-
-  function resolveAssetUrl(basePath = "", assetUrl = ""){
-    if (!assetUrl) return "";
-    try{
-      const url = new URL(assetUrl, basePath || window.location.href);
-      return url.toString();
-    } catch {
-      return assetUrl;
-    }
-  }
-
   // UI theme token registry (fixed list; values change per theme)
   const UI_TOKEN_KEYS = [
     "--bg","--surface-1","--surface-2","--surface-3","--border-subtle","--border-strong",
@@ -210,7 +187,122 @@
   ];
   const UI_TOKEN_SET = new Set(UI_TOKEN_KEYS);
 
-  // ===== Diary Blocks: templates (今は骨格) =====
+  // -- Public --
+  function validStampThemeId(themeId){
+    return STAMP_THEMES[themeId] ? themeId : DEFAULT_STAMP_THEME_ID;
+  }
+  function validUiThemeId(themeId){
+    return UI_THEMES[themeId] ? themeId : DEFAULT_UI_THEME_ID;
+  }
+
+  function resolveStampTheme(themeId){
+    const base = normalizeThemeStampDef(STAMP_THEMES[DEFAULT_STAMP_THEME_ID]);
+    const raw = STAMP_THEMES[themeId] || base;
+    const normalized = normalizeThemeStampDef(raw);
+    return {
+      id: normalized.id || DEFAULT_STAMP_THEME_ID,
+      basePath: normalized.basePath || "",
+      hash: normalized.hash || "",
+      byMood: normalized.byMood
+    };
+  }
+
+  function resolveUiTheme(themeId){
+    const raw = UI_THEMES[themeId];
+    const base = normalizeThemeUiDef(UI_THEMES[DEFAULT_UI_THEME_ID]);
+    const targetId = (raw && UI_THEME_SUPPORTED_VERSIONS.includes(raw.schemaVersion || 1)) ? themeId : DEFAULT_UI_THEME_ID;
+    const chain = [];
+    const visited = new Set();
+    let curId = UI_THEMES[targetId] ? targetId : DEFAULT_UI_THEME_ID;
+    while (curId && UI_THEMES[curId] && !visited.has(curId)){
+      const t = normalizeThemeUiDef(UI_THEMES[curId]);
+      chain.unshift(t); // 親を前にしたくて unshift
+      visited.add(curId);
+      if (UI_THEMES[curId]?.extends && UI_THEMES[UI_THEMES[curId].extends]){
+        curId = UI_THEMES[curId].extends;
+      } else {
+        break;
+      }
+    }
+
+    let tokens = { ...base.tokens };
+    let assets = { ...base.assets };
+    let basePath = base.basePath || "";
+    for (const t of chain){
+      tokens = sanitizeThemeVars(t.tokens || {}, tokens);
+      assets = { ...assets, ...(t.assets || {}) };
+      if (t.basePath) basePath = t.basePath;
+    }
+
+    const resolvedId = targetId || DEFAULT_UI_THEME_ID;
+    return { id: resolvedId, tokens, assets, basePath, hash: chain[chain.length-1]?.hash || "" };
+  }
+
+  function getStampDef(theme, moodId){
+    if (!theme || !moodId) return null;
+    return theme.byMood.get(moodId);
+  }
+  function buildStampIndex(theme){
+    const map = new Map();
+    for (const mood of STAMP_MOODS){
+      const entry = getStampDef(theme, mood);
+      if (entry) map.set(mood, entry);
+    }
+    return map;
+  }
+
+  // -- Private --
+  function resolveAssetUrl(basePath = "", assetUrl = ""){
+    if (!assetUrl) return "";
+    try{
+      const url = new URL(assetUrl, basePath || window.location.href);
+      return url.toString();
+    } catch {
+      return assetUrl;
+    }
+  }
+
+  function sanitizeThemeVars(rawVars = {}, fallback = {}){
+    const out = { ...fallback };
+    if (!rawVars || typeof rawVars !== "object") return out;
+    for (const [k,v] of Object.entries(rawVars)){
+      if (UI_TOKEN_SET.has(k)){
+        out[k] = v;
+      }
+    }
+    return out;
+  }
+
+  function normalizeThemeUiDef(raw){
+    const base = UI_THEMES[DEFAULT_UI_THEME_ID];
+    const schema = raw?.schemaVersion || 1;
+    if (!raw || !UI_THEME_SUPPORTED_VERSIONS.includes(schema)) return { id: DEFAULT_UI_THEME_ID, tokens: base.cssVars || {}, assets: {}, basePath: "" };
+    const tokens = sanitizeThemeVars(raw.cssVars || {}, base.cssVars || {});
+    const assets = {};
+    for (const k of UI_ASSET_KEYS){
+      if (raw.assets && typeof raw.assets[k] === "string") assets[k] = raw.assets[k];
+    }
+    const basePath = typeof raw.basePath === "string" ? raw.basePath : "";
+    const hash = typeof raw.hash === "string" ? raw.hash : "";
+    return { id: raw.id || DEFAULT_UI_THEME_ID, tokens, assets, basePath, hash };
+  }
+
+  // ===== Domain =====
+  // -- Public --
+  const LEGACY_STAMP_ID_MAP = {
+    dot_pink: "mood_1",
+    dot_orange: "mood_2",
+    dot_yellow: "mood_3",
+    dot_green: "mood_4",
+    dot_blue: "mood_5",
+    pink: "mood_1",
+    orange: "mood_2",
+    yellow: "mood_3",
+    green: "mood_4",
+    blue: "mood_5"
+  };
+
+  // Diary Blocks: templates (今は骨格)
   // “instanceId” を持つ設計にして、将来同種ブロック複数に対応できる形にしておく。
   const BLOCK_TEMPLATES = {
     mood: { type:"mood",  defaultName:"今日の気分は？", lockOrder: true,  lockName: true },
@@ -219,6 +311,38 @@
     memo: { type:"memo",  defaultName:"自由メモ",       lockOrder: false, lockName: false },
   };
 
+  // ①mood(固定) ②goal(固定) ③todo ④memo
+  function defaultDiaryLayout(){
+    return [
+      { instanceId: "blk_mood_fixed", type:"mood", name: BLOCK_TEMPLATES.mood.defaultName, visible:true },
+      { instanceId: "blk_goal_fixed", type:"goal", name: BLOCK_TEMPLATES.goal.defaultName, visible:true },
+      { instanceId: "blk_todo_1",     type:"todo", name: BLOCK_TEMPLATES.todo.defaultName, visible:true },
+      { instanceId: "blk_memo_1",     type:"memo", name: BLOCK_TEMPLATES.memo.defaultName, visible:true },
+    ];
+  }
+
+  function normalizeStampId(stampId){
+    if (!stampId) return null;
+    if (STAMP_MOODS.includes(stampId)) return stampId;
+    if (LEGACY_STAMP_ID_MAP[stampId]) return LEGACY_STAMP_ID_MAP[stampId];
+    return null;
+  }
+
+  function daysInMonthOf(month){
+    return new Date(YEAR, month, 0).getDate();
+  }
+  function ymd(month, day){
+    return `${YEAR}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  }
+
+
+  // -- Private --
+  function uid(){
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+  }
+
+  // ===== App Wiring =====
+  // -- State & Elements --
   // elements
   const headerTitleEl = document.getElementById("headerTitle");
   const headerSubEl = document.getElementById("headerSub");
@@ -286,7 +410,8 @@
   const menuListBtn = document.getElementById("menuList");
   const menuDataBtn = document.getElementById("menuData");
 
-  // storage
+  // ===== Storage =====
+  // -- Private --
   function sanitizeMonthData(raw){
     const out = {};
     if (!raw || typeof raw !== "object") return out;
@@ -305,13 +430,25 @@
     }
     return out;
   }
-  function loadStateForMonth(month){
-    const raw = window.storageApi.loadMonthData(month) || {};
-    return sanitizeMonthData(raw);
-  }
-
   function migrateMonthData(raw){
     // 追加項目が出たときはここで変換/補完を行う。現状は sanitize のみ。
+    return sanitizeMonthData(raw);
+  }
+  function migrateSettings(obj){
+    // 追加フィールドや形式変更があればここで補正する。
+    return {
+      stampThemeId: (obj && typeof obj.stampThemeId === "string") ? obj.stampThemeId : DEFAULT_STAMP_THEME_ID,
+      uiThemeId: (obj && typeof obj.uiThemeId === "string") ? obj.uiThemeId : DEFAULT_UI_THEME_ID,
+      ownedThemeIds: (obj && Array.isArray(obj.ownedThemeIds)) ? obj.ownedThemeIds : [DEFAULT_STAMP_THEME_ID],
+      themeByMonth: (obj && typeof obj.themeByMonth === "object" && obj.themeByMonth !== null) ? obj.themeByMonth : {},
+      diaryLayout: sanitizeLayout(obj && Array.isArray(obj.diaryLayout) ? obj.diaryLayout : defaultDiaryLayout()),
+      schemaVersion: obj?.schemaVersion || APP_SCHEMA_VERSION
+    };
+  }
+
+  // -- Public --
+  function loadStateForMonth(month){
+    const raw = window.storageApi.loadMonthData(month) || {};
     return sanitizeMonthData(raw);
   }
   function saveStateForMonth(month, obj){
@@ -328,20 +465,6 @@
   let breakdownOpen = false;
 
   // settings (theme + diary layout)
-
-  function uid(){
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
-  }
-
-  function defaultDiaryLayout(){
-    // ①mood(固定) ②goal(固定) ③todo ④memo
-    return [
-      { instanceId: "blk_mood_fixed", type:"mood", name: BLOCK_TEMPLATES.mood.defaultName, visible:true },
-      { instanceId: "blk_goal_fixed", type:"goal", name: BLOCK_TEMPLATES.goal.defaultName, visible:true },
-      { instanceId: "blk_todo_1",     type:"todo", name: BLOCK_TEMPLATES.todo.defaultName, visible:true },
-      { instanceId: "blk_memo_1",     type:"memo", name: BLOCK_TEMPLATES.memo.defaultName, visible:true },
-    ];
-  }
 
   function loadSettings(){
     try {
@@ -362,17 +485,6 @@
         schemaVersion: APP_SCHEMA_VERSION
       };
     }
-  }
-  function migrateSettings(obj){
-    // 追加フィールドや形式変更があればここで補正する。
-    return {
-      stampThemeId: (obj && typeof obj.stampThemeId === "string") ? obj.stampThemeId : DEFAULT_STAMP_THEME_ID,
-      uiThemeId: (obj && typeof obj.uiThemeId === "string") ? obj.uiThemeId : DEFAULT_UI_THEME_ID,
-      ownedThemeIds: (obj && Array.isArray(obj.ownedThemeIds)) ? obj.ownedThemeIds : [DEFAULT_STAMP_THEME_ID],
-      themeByMonth: (obj && typeof obj.themeByMonth === "object" && obj.themeByMonth !== null) ? obj.themeByMonth : {},
-      diaryLayout: sanitizeLayout(obj && Array.isArray(obj.diaryLayout) ? obj.diaryLayout : defaultDiaryLayout()),
-      schemaVersion: obj?.schemaVersion || APP_SCHEMA_VERSION
-    };
   }
   function saveSettings(obj){
     const payload = {
@@ -396,26 +508,6 @@
     return settings.diaryLayout;
   }
 
-  // theme helpers
-  function validStampThemeId(themeId){
-    return STAMP_THEMES[themeId] ? themeId : DEFAULT_STAMP_THEME_ID;
-  }
-  function validUiThemeId(themeId){
-    return UI_THEMES[themeId] ? themeId : DEFAULT_UI_THEME_ID;
-  }
-
-  function resolveStampTheme(themeId){
-    const base = normalizeStampThemeDef(STAMP_THEMES[DEFAULT_STAMP_THEME_ID]);
-    const raw = STAMP_THEMES[themeId] || base;
-    const normalized = normalizeStampThemeDef(raw);
-    return {
-      id: normalized.id || DEFAULT_STAMP_THEME_ID,
-      basePath: normalized.basePath || "",
-      hash: normalized.hash || "",
-      byMood: normalized.byMood
-    };
-  }
-
   function getStampThemeIdForMonth(yyyyMm){
     const byMonth = settings.themeByMonth || {};
     if (byMonth && typeof byMonth[yyyyMm] === "string") return byMonth[yyyyMm];
@@ -427,37 +519,6 @@
     settings.stampThemeId = id;
     resolvedStampTheme = { id, byMood, basePath };
     renderStampPickerButtons();
-  }
-
-  function resolveUiTheme(themeId){
-    const raw = UI_THEMES[themeId];
-    const base = normalizeUiTheme(UI_THEMES[DEFAULT_UI_THEME_ID]);
-    const targetId = (raw && UI_THEME_SUPPORTED_VERSIONS.includes(raw.schemaVersion || 1)) ? themeId : DEFAULT_UI_THEME_ID;
-    const chain = [];
-    const visited = new Set();
-    let curId = UI_THEMES[targetId] ? targetId : DEFAULT_UI_THEME_ID;
-    while (curId && UI_THEMES[curId] && !visited.has(curId)){
-      const t = normalizeUiTheme(UI_THEMES[curId]);
-      chain.unshift(t); // 親を前にしたくて unshift
-      visited.add(curId);
-      if (UI_THEMES[curId]?.extends && UI_THEMES[UI_THEMES[curId].extends]){
-        curId = UI_THEMES[curId].extends;
-      } else {
-        break;
-      }
-    }
-
-    let tokens = { ...base.tokens };
-    let assets = { ...base.assets };
-    let basePath = base.basePath || "";
-    for (const t of chain){
-      tokens = sanitizeThemeVars(t.tokens || {}, tokens);
-      assets = { ...assets, ...(t.assets || {}) };
-      if (t.basePath) basePath = t.basePath;
-    }
-
-    const resolvedId = targetId || DEFAULT_UI_THEME_ID;
-    return { id: resolvedId, tokens, assets, basePath, hash: chain[chain.length-1]?.hash || "" };
   }
 
   function applyThemeTokens(themeId, targetEl = document.documentElement, options = {}){
@@ -483,62 +544,6 @@
 
   function getStampTheme(){
     return resolvedStampTheme;
-  }
-  function getStampEntry(moodId){
-    return resolvedStampTheme.byMood.get(moodId);
-  }
-  function stampIndexById(){
-    const map = new Map();
-    for (const mood of STAMP_MOODS){
-      const entry = getStampEntry(mood);
-      if (entry) map.set(mood, entry);
-    }
-    return map;
-  }
-
-  function daysInMonthOf(month){
-    return new Date(YEAR, month, 0).getDate();
-  }
-  function ymd(month, day){
-    return `${YEAR}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-  }
-
-  function normalizeStampId(stampId){
-    if (!stampId) return null;
-    if (STAMP_MOODS.includes(stampId)) return stampId;
-    if (LEGACY_STAMP_ID_MAP[stampId]) return LEGACY_STAMP_ID_MAP[stampId];
-    return null;
-  }
-
-  function normalizeStampThemeDef(def){
-    const base = STAMP_THEMES[DEFAULT_STAMP_THEME_ID];
-    const schema = def?.schemaVersion;
-    if (!STAMP_THEME_SUPPORTED_VERSIONS.includes(schema || 1)){
-      return { ...base, id: base.id, name: base.name, schemaVersion: base.schemaVersion, basePath: base.basePath };
-    }
-    const byMood = new Map();
-    const entries = Array.isArray(def?.stamps) ? def.stamps : [];
-    for (const mood of STAMP_MOODS){
-      const fromDef = entries.find(s => s?.mood === mood) || {};
-      const fromBase = (base.stamps || []).find(s => s.mood === mood) || {};
-      byMood.set(mood, {
-        mood,
-        label: fromDef.label || fromBase.label || mood,
-        className: fromDef.className || fromBase.className || null,
-        color: fromDef.color || fromBase.color || null,
-        asset: fromDef.asset || fromBase.asset || null,
-        renderMode: fromDef.renderMode || fromBase.renderMode || "color",
-        shape: fromDef.shape || fromBase.shape || "circle"
-      });
-    }
-    return {
-      id: def?.id || base.id,
-      name: def?.name || base.name,
-      schemaVersion: def?.schemaVersion || base.schemaVersion || 1,
-      basePath: typeof def?.basePath === "string" ? def.basePath : base.basePath || "",
-      hash: typeof def?.hash === "string" ? def.hash : (base.hash || ""),
-      byMood
-    };
   }
 
   function ensureDay(dateKey){
@@ -580,6 +585,11 @@
     saveStateForMonth(currentMonth, state);
   }
 
+  function resolveStampEntryForId(stampId){
+    const moodId = normalizeStampId(stampId);
+    return moodId ? getStampDef(resolvedStampTheme, moodId) : null;
+  }
+
   // goal preview condition
   function shouldShowGoalPreview(){
     return window.matchMedia("(min-width: 760px)").matches;
@@ -591,6 +601,7 @@
     return s || "";
   }
 
+  // -- Private --
   // header by view
   function updateHeader(){
     if (viewMode === "data"){
@@ -614,6 +625,7 @@
     nextMonthBtn.disabled = currentMonth >= MAX_MONTH;
   }
 
+  // -- Public --
   function setView(mode){
     viewMode = mode;
     hidePicker();
@@ -733,85 +745,45 @@
     caretEl.style.top = `${caretTop}px`;
   }
 
+  // ===== Render =====
+  // -- Public --
   function renderStampPickerButtons(){
     const row = pickerEl.querySelector(".pickerRow");
     const miniDot = pickerEl.querySelector(".pickerTitle .miniDot");
     if (!row) return;
     row.innerHTML = "";
-    const map = stampIndexById();
+    const map = buildStampIndex(resolvedStampTheme);
     for (const mood of STAMP_MOODS){
-      const entry = map.get(mood) || { label: mood };
+      const entry = map.get(mood) || null;
       const b = document.createElement("button");
       b.type = "button";
       b.dataset.stamp = mood;
-      b.setAttribute("aria-label", entry.label || mood);
-      applyStampVisual(b, mood, "pick");
+      b.setAttribute("aria-label", entry?.label || mood);
+      renderStamp(b, entry, { baseClass: "pick", basePath: resolvedStampTheme.basePath });
       row.appendChild(b);
     }
     if (miniDot){
       const first = map.get(STAMP_MOODS[0]);
-      applyStampVisual(miniDot, STAMP_MOODS[0], "miniDot");
+      renderStamp(miniDot, first || null, { baseClass: "miniDot", basePath: resolvedStampTheme.basePath });
     }
   }
 
   function classForStampId(stampId){
     const mood = normalizeStampId(stampId);
     if (!mood) return null;
-    const entry = getStampEntry(mood);
+    const entry = getStampDef(resolvedStampTheme, mood);
     return entry?.className || null;
   }
   function colorForStampId(stampId){
     const mood = normalizeStampId(stampId);
     if (!mood) return null;
-    const entry = getStampEntry(mood);
+    const entry = getStampDef(resolvedStampTheme, mood);
     return entry?.color || null;
   }
 
-  function applyStampVisualFromEntry(el, entry, baseClass, basePath = ""){
-    el.className = baseClass;
-    el.style.backgroundColor = "";
-    el.style.backgroundImage = "";
-    el.style.backgroundSize = "";
-    el.style.backgroundRepeat = "";
-    el.style.backgroundPosition = "";
-    const oldImg = el.querySelector(".stampImg");
-    if (oldImg) oldImg.remove();
-    if (!entry) return;
-    const cls = entry.className;
-    const col = entry.color;
-    const shape = entry.shape || "circle";
-    const assetUrl = entry.asset ? resolveAssetUrl(basePath, entry.asset) : "";
-    const mode = entry.renderMode || "color";
-    if (cls) el.classList.add(cls);
-    if (shape) el.classList.add(`shape-${shape}`);
-
-    if (mode === "img-tag" && assetUrl){
-      const img = document.createElement("img");
-      img.className = "stampImg";
-      img.decoding = "async";
-      img.loading = "lazy";
-      img.src = assetUrl;
-      el.appendChild(img);
-      el.classList.add("filled");
-      return;
-    }
-    if (mode === "image-bg" && assetUrl){
-      el.style.backgroundImage = `url("${assetUrl}")`;
-      el.style.backgroundSize = "contain";
-      el.style.backgroundRepeat = "no-repeat";
-      el.style.backgroundPosition = "center";
-      el.classList.add("filled");
-      return;
-    }
-    if (col){
-      el.style.backgroundColor = col;
-      el.classList.add("filled");
-    } else if (cls){
-      el.classList.add("filled");
-    }
-  }
-
-  function applyStampVisual(el, stampId, baseClass){
+  // entry is resolved by caller; this stays entry-only.
+  function renderStamp(el, entry, ctx = {}){
+    const { baseClass = "", basePath = "" } = ctx;
     el.className = baseClass;
     el.style.backgroundColor = "";
     el.style.backgroundImage = "";
@@ -821,17 +793,12 @@
     // remove existing img-tag if any
     const oldImg = el.querySelector(".stampImg");
     if (oldImg) oldImg.remove();
-
-    const mood = normalizeStampId(stampId);
-    if (!mood) return;
-
-    const entry = getStampEntry(mood);
     if (!entry) return;
 
     const cls = entry.className;
     const col = entry.color;
     const shape = entry.shape || "circle";
-    const assetUrl = entry.asset ? resolveAssetUrl(resolvedStampTheme.basePath, entry.asset) : "";
+    const assetUrl = entry.asset ? resolveAssetUrl(basePath, entry.asset) : "";
     const mode = entry.renderMode || "color";
 
     if (cls) el.classList.add(cls);
@@ -903,10 +870,12 @@
   function setDiaryStampFromDate(dateKey){
     ensureDay(dateKey);
     const stampId = state[dateKey].stampId;
-    applyStampVisual(diaryStampEl, stampId, "diaryStamp");
+    const entry = resolveStampEntryForId(stampId);
+    renderStamp(diaryStampEl, entry, { baseClass: "diaryStamp", basePath: resolvedStampTheme.basePath });
   }
   function setMiniStampClass(el, stampId){
-    applyStampVisual(el, stampId, "miniStamp");
+    const entry = resolveStampEntryForId(stampId);
+    renderStamp(el, entry, { baseClass: "miniStamp", basePath: resolvedStampTheme.basePath });
   }
 
   // render calendar (dynamic weeks)
@@ -963,7 +932,8 @@
         dot.className = "dot";
         dot.setAttribute("aria-label", `${key} スタンプ`);
 
-        applyStampVisual(dot, state[key].stampId, "dot");
+        const entry = resolveStampEntryForId(state[key].stampId);
+        renderStamp(dot, entry, { baseClass: "dot", basePath: resolvedStampTheme.basePath });
 
         dot.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -1032,6 +1002,7 @@
     }
   }
 
+  // -- Private --
   function renderMoodBlock(blk){
     const wrap = document.createElement("div");
     wrap.className = "moodWidget";
@@ -1049,7 +1020,7 @@
     if (current) row.classList.add("hasSelection");
 
     for (const mood of STAMP_MOODS){
-      const entry = getStampEntry(mood) || { label: mood };
+      const entry = getStampDef(resolvedStampTheme, mood) || { label: mood };
       const b = document.createElement("button");
       b.type = "button";
       b.className = "moodPick";
@@ -1521,30 +1492,6 @@
     themePanel.classList.remove("show");
   }
 
-  function sanitizeThemeVars(rawVars = {}, fallback = {}){
-    const out = { ...fallback };
-    for (const [k,v] of Object.entries(rawVars)){
-      if (UI_TOKEN_SET.has(k)){
-        out[k] = v;
-      }
-    }
-    return out;
-  }
-
-  function normalizeUiTheme(raw){
-    const base = UI_THEMES[DEFAULT_UI_THEME_ID];
-    const schema = raw?.schemaVersion || 1;
-    if (!raw || !UI_THEME_SUPPORTED_VERSIONS.includes(schema)) return { id: DEFAULT_UI_THEME_ID, tokens: base.cssVars || {}, assets: {}, basePath: "" };
-    const tokens = sanitizeThemeVars(raw.cssVars || {}, base.cssVars || {});
-    const assets = {};
-    for (const k of UI_ASSET_KEYS){
-      if (raw.assets && typeof raw.assets[k] === "string") assets[k] = raw.assets[k];
-    }
-    const basePath = typeof raw.basePath === "string" ? raw.basePath : "";
-    const hash = typeof raw.hash === "string" ? raw.hash : "";
-    return { id: raw.id || DEFAULT_UI_THEME_ID, tokens, assets, basePath, hash };
-  }
-
   function renderThemeGrid(){
     themeGrid.innerHTML = "";
     const uiTitle = document.createElement("div");
@@ -1621,7 +1568,8 @@
       moodRow.className = "thumbMoodRow";
       STAMP_MOODS.forEach((mood) => {
         const dot = document.createElement("div");
-        applyStampVisual(dot, mood, "thumbMoodDot");
+        const entry = getStampDef(resolvedStampTheme, mood);
+        renderStamp(dot, entry, { baseClass: "thumbMoodDot", basePath: resolvedStampTheme.basePath });
         moodRow.appendChild(dot);
       });
 
@@ -1699,11 +1647,11 @@
 
       const dotsRow = document.createElement("div");
       dotsRow.className = "stampDotsRow";
-      const normalized = normalizeStampThemeDef(t);
+      const normalized = normalizeThemeStampDef(t);
       STAMP_MOODS.forEach((mood) => {
         const dot = document.createElement("div");
         const entry = normalized.byMood.get(mood);
-        applyStampVisualFromEntry(dot, entry, "stampPreviewDot", normalized.basePath);
+        renderStamp(dot, entry, { baseClass: "stampPreviewDot", basePath: normalized.basePath });
         dotsRow.appendChild(dot);
       });
       thumb.appendChild(dotsRow);
