@@ -273,6 +273,37 @@
     return out;
   }
 
+  function normalizeThemeStampDef(def){
+    const base = STAMP_THEMES[DEFAULT_STAMP_THEME_ID];
+    const schema = def?.schemaVersion;
+    if (!STAMP_THEME_SUPPORTED_VERSIONS.includes(schema || 1)){
+      return { ...base, id: base.id, name: base.name, schemaVersion: base.schemaVersion, basePath: base.basePath };
+    }
+    const byMood = new Map();
+    const entries = Array.isArray(def?.stamps) ? def.stamps : [];
+    for (const mood of STAMP_MOODS){
+      const fromDef = entries.find(s => s?.mood === mood) || {};
+      const fromBase = (base.stamps || []).find(s => s.mood === mood) || {};
+      byMood.set(mood, {
+        mood,
+        label: fromDef.label || fromBase.label || mood,
+        className: fromDef.className || fromBase.className || null,
+        color: fromDef.color || fromBase.color || null,
+        asset: fromDef.asset || fromBase.asset || null,
+        renderMode: fromDef.renderMode || fromBase.renderMode || "color",
+        shape: fromDef.shape || fromBase.shape || "circle"
+      });
+    }
+    return {
+      id: def?.id || base.id,
+      name: def?.name || base.name,
+      schemaVersion: def?.schemaVersion || base.schemaVersion || 1,
+      basePath: typeof def?.basePath === "string" ? def.basePath : base.basePath || "",
+      hash: typeof def?.hash === "string" ? def.hash : (base.hash || ""),
+      byMood
+    };
+  }
+
   function normalizeThemeUiDef(raw){
     const base = UI_THEMES[DEFAULT_UI_THEME_ID];
     const schema = raw?.schemaVersion || 1;
