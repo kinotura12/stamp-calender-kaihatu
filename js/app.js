@@ -39,6 +39,20 @@
         { mood: "mood_4", label: "低め", color: "#cc5f9e", className: "mood-dark-4" },
         { mood: "mood_5", label: "最低", color: "#7a8ba0", className: "mood-dark-5" },
       ]
+    },
+    tenki_png: {
+      id: "tenki_png",
+      name: "Weather Stamps",
+      schemaVersion: 1,
+      basePath: "./assets/stamps/tenki/",
+      hash: "",
+      stamps: [
+        { mood: "mood_1", label: "天気 1", asset: "tenki_1.png", renderMode: "img-tag" },
+        { mood: "mood_2", label: "天気 2", asset: "tenki_2.png", renderMode: "img-tag" },
+        { mood: "mood_3", label: "天気 3", asset: "tenki_3.png", renderMode: "img-tag" },
+        { mood: "mood_4", label: "天気 4", asset: "tenki_4.png", renderMode: "img-tag" },
+        { mood: "mood_5", label: "天気 5", asset: "tenki_5.png", renderMode: "img-tag" },
+      ]
     }
     // 将来: ネコ系/季節系など追加
   };
@@ -255,10 +269,12 @@
   function resolveAssetUrl(basePath = "", assetUrl = ""){
     if (!assetUrl) return "";
     try{
-      const url = new URL(assetUrl, basePath || window.location.href);
-      return url.toString();
+      const base = basePath ? new URL(basePath, window.location.href) : new URL(window.location.href);
+      return new URL(assetUrl, base).toString();
     } catch {
-      return assetUrl;
+      if (!basePath) return assetUrl;
+      const needsSlash = !basePath.endsWith("/") && !assetUrl.startsWith("/");
+      return `${basePath}${needsSlash ? "/" : ""}${assetUrl}`;
     }
   }
 
@@ -706,6 +722,7 @@
     currentMonth = nextMonth;
     state = loadStateForMonth(currentMonth);
 
+    applyStampTheme(getStampThemeIdForMonth(`${YEAR}-${String(currentMonth).padStart(2,'0')}`));
     renderCalendar();
     setView("calendar");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -894,9 +911,6 @@
 
   // render calendar (dynamic weeks)
   function renderCalendar(){
-    // theme per month hook (stamps) + UI theme
-    applyStampTheme(getStampThemeIdForMonth(`${YEAR}-${String(currentMonth).padStart(2,'0')}`));
-    applyUiTheme(settings.uiThemeId);
     daysEl.innerHTML = "";
 
     const first = new Date(YEAR, currentMonth - 1, 1);
@@ -1037,9 +1051,7 @@
       const entry = getStampDef(resolvedStampTheme, mood) || { label: mood };
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "moodPick";
-      if (entry.className) b.classList.add(entry.className);
-      if (entry.color) b.style.background = entry.color;
+      renderStamp(b, entry, { baseClass: "moodPick", basePath: resolvedStampTheme.basePath });
       b.setAttribute("aria-label", entry.label || mood);
 
       if (current && current === mood){
@@ -1703,6 +1715,9 @@
     }
     if (selectedStampThemeId){
       settings.stampThemeId = validStampThemeId(selectedStampThemeId);
+      if (!settings.themeByMonth || typeof settings.themeByMonth !== "object") settings.themeByMonth = {};
+      const monthKey = `${YEAR}-${String(currentMonth).padStart(2,"0")}`;
+      settings.themeByMonth[monthKey] = settings.stampThemeId;
       applyStampTheme(settings.stampThemeId);
     }
     saveSettings(settings);
@@ -2036,6 +2051,7 @@
 
   // init
   applyUiTheme(settings.uiThemeId);
+  applyStampTheme(getStampThemeIdForMonth(`${YEAR}-${String(currentMonth).padStart(2,'0')}`));
   renderCalendar();
   setView("calendar");
 

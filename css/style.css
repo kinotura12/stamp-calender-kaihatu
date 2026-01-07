@@ -1569,6 +1569,40 @@
       .goalPreview.show{ display:-webkit-box; }
       .cell{ height: 96px; }
     }
+
+    /* ===== stamp sizing (S/M/L) ===== */
+    .dot,
+    .diaryStamp,
+    .moodPick,
+    .miniStamp,
+    .stampPreviewDot,
+    .thumbMoodDot,
+    .thumbDiaryStamp{
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      box-sizing: border-box;
+      padding: 0;
+    }
+    /* S */
+    .dot,
+    .miniStamp{
+      width: 18px;
+      height: 18px;
+    }
+    /* M */
+    .diaryStamp,
+    .moodPick{
+      width: 28px;
+      height: 28px;
+    }
+    /* L */
+    .stampPreviewDot,
+    .thumbMoodDot,
+    .thumbDiaryStamp{
+      width: 26px;
+      height: 26px;
+    }
   
     /* ===== light theme overrides ===== */
     :root[data-ui-theme="ui_light_default"] body{
