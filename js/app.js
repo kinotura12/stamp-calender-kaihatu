@@ -623,6 +623,12 @@
     }
   }
 
+  function applyUiThemeFromCatalog(theme){
+    applyThemeTokensFromCatalog(theme?.cssVars, document.documentElement);
+    if (theme?.id) document.documentElement.setAttribute("data-ui-theme", theme.id);
+    settings.uiThemeId = theme?.id || DEFAULT_UI_THEME_ID;
+  }
+
   function applyUiTheme(themeId){
     const { id } = applyThemeTokens(themeId || settings.uiThemeId);
     settings.uiThemeId = id;
@@ -2139,8 +2145,8 @@
             renderStore();
             return;
           }
-          settings.uiThemeId = t.id;
-          applyThemeIfNeeded();
+          applyUiThemeFromCatalog(t);
+          lastAppliedThemeKey = null;
           saveSettings(settings);
           renderCalendar();
           if (selectedDate){
@@ -2222,8 +2228,8 @@
             renderStore();
             return;
           }
-          settings.stampThemeId = t.id;
-          applyThemeIfNeeded();
+          applyStampThemeFromCatalog(t);
+          lastAppliedThemeKey = null;
           saveSettings(settings);
           renderCalendar();
           if (selectedDate){
@@ -2571,6 +2577,7 @@
   const needsCatalogStamp = !STAMP_THEMES[getStampThemeIdForMonth(monthKey)];
   if (needsCatalogUi || needsCatalogStamp){
     loadStoreCatalog().then(() => {
+      lastAppliedThemeKey = null;
       if (applyThemeIfNeeded()){
         renderCalendar();
         if (selectedDate){
