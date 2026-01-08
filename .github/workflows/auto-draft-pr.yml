@@ -1,0 +1,60 @@
+name: Create draft PR from labeled issue
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  create-draft-pr:
+    if: contains(github.event.label.name, 'autopr')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Create branch for suggestion
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        BRANCH="autopr/issue-${{ github.event.issue.number }}"
+        git checkout -b "$BRANCH"
+
+    - name: Add suggestion file from issue
+      run: |
+        mkdir -p docs
+        FILENAME="docs/issue-${{ github.event.issue.number }}-suggestion.md"
+        echo "# Suggestion generated from Issue #${{ github.event.issue.number }}" > "$FILENAME"
+        echo "" >> "$FILENAME"
+        echo "Title: ${{ github.event.issue.title }}" >> "$FILENAME"
+        echo "" >> "$FILENAME"
+        echo "Original issue body:" >> "$FILENAME"
+        echo "" >> "$FILENAME"
+        # Write issue body preserving newlines
+        printf "%s\n\n" "${{ github.event.issue.body }}" >> "$FILENAME"
+        echo "----" >> "$FILENAME"
+        echo "This file was generated automatically from the issue. Please review and edit before merging." >> "$FILENAME"
+        git add "$FILENAME"
+        git commit -m "Add suggestion file for issue #${{ github.event.issue.number }}" || echo "No changes to commit"
+        git push -u origin "$BRANCH"
+
+    - name: Create Draft PR
+      uses: peter-evans/create-pull-request@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "Create suggestion for issue #${{ github.event.issue.number }}"
+        branch: "autopr/issue-${{ github.event.issue.number }}"
+        title: "Draft: Suggestion for issue #${{ github.event.issue.number }} - ${{ github.event.issue.title }}"
+        body: |
+          This draft PR was automatically created from Issue #${{ github.event.issue.number }}.
+
+          - Issue author: ${{ github.event.issue.user.login }}
+          - Please review the suggested file in docs/issue-${{ github.event.issue.number }}-suggestion.md
+          - Edit the files as needed, then mark the PR ready for review and merge.
+
+          (This PR is a draft and requires manual review.)
+        assignees: kinotura12
+        draft: true
