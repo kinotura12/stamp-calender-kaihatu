@@ -66,6 +66,29 @@ V1では、保存構造は「固定フォーム型」。
 - diary 欠損時は { goal:"", todos:[], memo:"" } を補完
 - todos は UI 都合により最低1件以上を保証
 
+補足（責務分離）
+
+- sanitizeMonthData は「保存形式の最低保証」（legacy stamp → stampId、stampId 正規化）のみ
+- ensureDay は「画面で扱う最低保証」（stampId 正規化、diary の型補正）まで
+- UI 都合の初期化（TODO 初期行や uid 付与）は prepareDayForEdit でのみ行う
+
+テーマ管理の3状態モデル
+
+- Catalog（ストアに存在するテーマ）
+  - ストア側の販売一覧
+  - UIテーマ/スタンプテーマのメタ情報（価格、プレビュー、説明、対応schemaなど）
+- Ownership（ユーザーが所有しているテーマ）
+  - 購入/解放済みのテーマID一覧
+  - 所有判定の唯一の根拠
+- Presentation（表示状態）
+  - UIでの表示順・フィルタ・タブ切替・選択状態
+  - 永続化の可否は別途検討（基本はUI state）
+
+運用ルール
+
+- UIで選択できるのは Ownership に含まれるテーマのみ
+- Catalog はストア画面・購入導線のために参照される
+- Ownership と Presentation の更新は Catalog の更新と独立して扱う
 ---
 
 ## V1-4. Settings 構造（layout + theme）
