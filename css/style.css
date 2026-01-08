@@ -1597,6 +1597,13 @@
       overflow: visible !important;
       padding: 0 !important;
     }
+    .maskStamp{
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      overflow: visible !important;
+      padding: 0 !important;
+    }
     .imgStamp .stampImg{
       filter: drop-shadow(0 3px 8px rgba(0,0,0,.35));
     }
@@ -1621,6 +1628,14 @@
       width: var(--stamp-l);
       height: var(--stamp-l);
     }
+
+    /* ===== store ===== */
+    .store{ display:none; }
+    .store.show{ display:block; }
+    .storeHead{ display:flex; justify-content:space-between; align-items:flex-end; margin: 8px 0 14px; }
+    .storeTitle{ font-size: 20px; font-weight: 700; letter-spacing: .02em; }
+    .storeSub{ font-size: 12px; color: var(--muted); }
+    .storeStatus{ color: var(--muted); font-size: 13px; margin-bottom: 10px; }
     /* L */
     .stampPreviewDot{
       width: var(--stamp-l);

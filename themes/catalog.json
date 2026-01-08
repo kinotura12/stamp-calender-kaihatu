@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-01-08",
+  "themes": [
+    {
+      "id": "ui_pastel_rose",
+      "type": "ui",
+      "name": "Pastel Rose",
+      "price": 200,
+      "status": "for-sale",
+      "description": "Soft pastel UI palette.",
+      "preview": {
+        "swatches": ["#f6d9e6", "#fce9f2", "#f7b7d2", "#f0a3c3"]
+      },
+      "cssVars": {
+        "--bg":"#fdf7fb",
+        "--surface-1":"#fff1f7",
+        "--surface-2":"#ffe6f0",
+        "--surface-3":"rgba(255,255,255,.75)",
+        "--border-subtle":"rgba(132,94,110,.12)",
+        "--border-strong":"rgba(132,94,110,.22)",
+        "--text":"#3b2b34",
+        "--muted":"#7a6370",
+        "--text-strong":"#2f232a",
+        "--text-normal":"#4a3742",
+        "--text-muted":"#7a6370",
+        "--text-mini":"#9a8791",
+        "--shadow-sm":"0 4px 10px rgba(132,94,110,.10)",
+        "--shadow-md":"0 10px 24px rgba(132,94,110,.16)",
+        "--shadow-lg":"0 18px 40px rgba(132,94,110,.20)",
+        "--shadow-card":"0 10px 24px rgba(132,94,110,.16)",
+        "--shadow-popover":"0 18px 40px rgba(132,94,110,.20)",
+        "--input-bg":"#fff7fb",
+        "--input-border":"rgba(132,94,110,.18)",
+        "--input-shadow":"0 4px 10px rgba(132,94,110,.08)",
+        "--box-bg":"rgba(255,255,255,.7)",
+        "--box-border":"rgba(132,94,110,.12)",
+        "--box-shadow":"0 4px 10px rgba(132,94,110,.08)",
+        "--btn-bg":"rgba(255,255,255,.7)",
+        "--btn-fg":"#3b2b34",
+        "--btn-border":"rgba(132,94,110,.18)",
+        "--btn-shadow":"0 4px 10px rgba(132,94,110,.10)",
+        "--btn-danger-bg":"rgba(229,121,121,.12)",
+        "--btn-danger-border":"rgba(229,121,121,.3)",
+        "--btn-danger-fg":"#7b1f2a",
+        "--btn-danger-shadow":"0 4px 10px rgba(229,121,121,.16)",
+        "--pill-bg":"rgba(255,255,255,.7)",
+        "--pill-border":"rgba(132,94,110,.16)",
+        "--pill-fg":"rgba(59,43,52,.85)",
+        "--accent":"#f0a3c3",
+        "--accent-2":"#f7b7d2",
+        "--success":"#7fcf9a",
+        "--warning":"#f5cf6b",
+        "--danger":"#e57979",
+        "--info":"#8ab5ff",
+        "--link":"#d46a9c",
+        "--ring":"rgba(240,163,195,.4)",
+        "--pink":"#f0a3c3",
+        "--orange":"#f6b07b",
+        "--yellow":"#f5d58d",
+        "--green":"#9fd9b0",
+        "--blue":"#9dbef5",
+        "--panel":"#fff1f7",
+        "--card":"#fff7fb",
+        "--card2":"rgba(255,255,255,.7)",
+        "--card-border":"rgba(132,94,110,.12)",
+        "--card-shadow":"0 8px 20px rgba(132,94,110,.12)"
+      }
+    },
+    {
+      "id": "stamp_star_glow",
+      "type": "stamp",
+      "name": "Star Glow",
+      "price": 200,
+      "status": "for-sale",
+      "description": "Star-shaped transparent stamp.",
+      "preview": {
+        "thumbnail": "themes/store-assets/stamps/star/preview.png",
+        "color": "#f7b7d2"
+      },
+      "assets": {
+        "basePath": "themes/store-assets/stamps/star/",
+        "file": "star.png",
+        "mode": "mask"
+      },
+      "stamps": [
+        { "mood": "mood_1", "asset": "star.png", "renderMode": "mask", "color": "#f7b7d2" },
+        { "mood": "mood_2", "asset": "star.png", "renderMode": "mask", "color": "#ffd3a5" },
+        { "mood": "mood_3", "asset": "star.png", "renderMode": "mask", "color": "#ffe9a8" },
+        { "mood": "mood_4", "asset": "star.png", "renderMode": "mask", "color": "#b7f0c8" },
+        { "mood": "mood_5", "asset": "star.png", "renderMode": "mask", "color": "#b6d9ff" }
+      ]
+    }
+  ]
+}

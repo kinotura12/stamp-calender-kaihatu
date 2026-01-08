@@ -11,6 +11,8 @@
   const STAMP_MOODS = ["mood_1","mood_2","mood_3","mood_4","mood_5"];
   const STAMP_THEME_SUPPORTED_VERSIONS = [1];
   const UI_THEME_SUPPORTED_VERSIONS = [1];
+  const DEFAULT_UI_THEME_IDS = ["ui_dark_default","ui_light_default"];
+  const DEFAULT_STAMP_THEME_IDS = ["default_dots","dark_moods","tenki_png"];
   const STAMP_THEMES = {
     default_dots: {
       id: "default_dots",
@@ -33,11 +35,11 @@
       basePath: "",
       hash: "",
       stamps: [
-        { mood: "mood_1", label: "最高", color: "#6ad0f5", className: "mood-dark-1" },
-        { mood: "mood_2", label: "良い", color: "#4b7bec", className: "mood-dark-2" },
-        { mood: "mood_3", label: "普通", color: "#7c5be7", className: "mood-dark-3" },
-        { mood: "mood_4", label: "低め", color: "#cc5f9e", className: "mood-dark-4" },
-        { mood: "mood_5", label: "最低", color: "#7a8ba0", className: "mood-dark-5" },
+        { mood: "mood_1", label: "最高", color: "#8f2a36", className: "mood-dark-1" },
+        { mood: "mood_2", label: "良い", color: "#7d3459", className: "mood-dark-2" },
+        { mood: "mood_3", label: "普通", color: "#14605d", className: "mood-dark-3" },
+        { mood: "mood_4", label: "低め", color: "#2a3c6a", className: "mood-dark-4" },
+        { mood: "mood_5", label: "最低", color: "#6a6f77", className: "mood-dark-5" },
       ]
     },
     tenki_png: {
@@ -47,11 +49,11 @@
       basePath: "./assets/stamps/tenki/",
       hash: "",
       stamps: [
-        { mood: "mood_1", label: "天気 1", asset: "tenki_1.png", renderMode: "img-tag" },
-        { mood: "mood_2", label: "天気 2", asset: "tenki_2.png", renderMode: "img-tag" },
-        { mood: "mood_3", label: "天気 3", asset: "tenki_3.png", renderMode: "img-tag" },
-        { mood: "mood_4", label: "天気 4", asset: "tenki_4.png", renderMode: "img-tag" },
-        { mood: "mood_5", label: "天気 5", asset: "tenki_5.png", renderMode: "img-tag" },
+        { mood: "mood_1", label: "天気 1", asset: "tenki_1.png", renderMode: "mask", color: "#ffb347" },
+        { mood: "mood_2", label: "天気 2", asset: "tenki_2.png", renderMode: "mask", color: "#ffd59e" },
+        { mood: "mood_3", label: "天気 3", asset: "tenki_3.png", renderMode: "mask", color: "#c8d0dc" },
+        { mood: "mood_4", label: "天気 4", asset: "tenki_4.png", renderMode: "mask", color: "#9fd4ff" },
+        { mood: "mood_5", label: "天気 5", asset: "tenki_5.png", renderMode: "mask", color: "#5aa7ff" },
       ]
     }
     // 将来: ネコ系/季節系など追加
@@ -428,6 +430,9 @@
   const yearTotalEl = document.getElementById("yearTotal");
   const toggleBreakdownBtn = document.getElementById("toggleBreakdown");
   const monthBreakdownEl = document.getElementById("monthBreakdown");
+  const storeEl = document.getElementById("store");
+  const storeStatusEl = document.getElementById("storeStatus");
+  const storeGridEl = document.getElementById("storeGrid");
 
   const bulkFrom = document.getElementById("bulkFrom");
   const bulkTo = document.getElementById("bulkTo");
@@ -456,6 +461,7 @@
   const menuCalendarBtn = document.getElementById("menuCalendar");
   const menuListBtn = document.getElementById("menuList");
   const menuDataBtn = document.getElementById("menuData");
+  const menuStoreBtn = document.getElementById("menuStore");
 
   // ===== Storage =====
   // -- Private --
@@ -581,6 +587,18 @@
     return { id, tokens };
   }
 
+  function applyThemeTokensFromCatalog(tokens, targetEl){
+    if (!targetEl) return;
+    const safe = sanitizeThemeVars(tokens || {}, {});
+    for (const key of UI_TOKEN_KEYS){
+      if (Object.prototype.hasOwnProperty.call(safe, key)){
+        targetEl.style.setProperty(key, safe[key]);
+      } else {
+        targetEl.style.removeProperty(key);
+      }
+    }
+  }
+
   function applyUiTheme(themeId){
     const { id } = applyThemeTokens(themeId || settings.uiThemeId);
     settings.uiThemeId = id;
@@ -700,6 +718,11 @@
       headerSubEl.textContent = "書き出し・読み込み・リセット";
       prevMonthBtn.classList.add("hidden");
       nextMonthBtn.classList.add("hidden");
+    } else if (viewMode === "store"){
+      headerTitleEl.textContent = "ストア";
+      headerSubEl.textContent = "テーマの購入・追加";
+      prevMonthBtn.classList.add("hidden");
+      nextMonthBtn.classList.add("hidden");
     } else if (viewMode === "list"){
       headerTitleEl.textContent = `${YEAR}年${currentMonth}月 日記一覧`;
       headerSubEl.textContent = "1日〜月末";
@@ -723,12 +746,13 @@
     hideInlineConfirm();
     closeCustomize(false);
 
-    const calendarVisible = (mode !== "data");
+    const calendarVisible = (mode !== "data" && mode !== "store");
     dowRow.classList.toggle("hidden", !calendarVisible);
     calendarPanel.classList.toggle("hidden", !calendarVisible);
 
     listEl.classList.remove("show");
     dataEl.classList.remove("show");
+    storeEl.classList.remove("show");
 
     // diaryWrap visibility (calendar or list only when diary opened)
     if (mode === "calendar"){
@@ -751,6 +775,9 @@
       bulkFrom.value = String(currentMonth);
       bulkTo.value = String(currentMonth);
       renderYearStats();
+    } else if (mode === "store"){
+      storeEl.classList.add("show");
+      renderStore();
     }
 
     updateHeader();
@@ -798,6 +825,7 @@
   menuCalendarBtn.addEventListener("click", () => { closeMenu(); setView("calendar"); });
   menuListBtn.addEventListener("click", () => { closeMenu(); setView("list"); });
   menuDataBtn.addEventListener("click", () => { closeMenu(); setView("data"); });
+  menuStoreBtn.addEventListener("click", () => { closeMenu(); setView("store"); });
 
   // picker
   function hidePicker(){
@@ -869,6 +897,14 @@
     el.style.backgroundSize = "";
     el.style.backgroundRepeat = "";
     el.style.backgroundPosition = "";
+    el.style.maskImage = "";
+    el.style.webkitMaskImage = "";
+    el.style.maskSize = "";
+    el.style.webkitMaskSize = "";
+    el.style.maskRepeat = "";
+    el.style.webkitMaskRepeat = "";
+    el.style.maskPosition = "";
+    el.style.webkitMaskPosition = "";
     // remove existing img-tag if any
     const oldImg = el.querySelector(".stampImg");
     if (oldImg) oldImg.remove();
@@ -913,6 +949,24 @@
       el.style.backgroundSize = "contain";
       el.style.backgroundRepeat = "no-repeat";
       el.style.backgroundPosition = "center";
+      return;
+    }
+
+    if (mode === "mask" && assetUrl){
+      if (!col){
+        applyFallback();
+        return;
+      }
+      el.classList.add("maskStamp");
+      el.style.backgroundColor = col;
+      el.style.maskImage = `url("${assetUrl}")`;
+      el.style.webkitMaskImage = `url("${assetUrl}")`;
+      el.style.maskSize = "contain";
+      el.style.webkitMaskSize = "contain";
+      el.style.maskRepeat = "no-repeat";
+      el.style.webkitMaskRepeat = "no-repeat";
+      el.style.maskPosition = "center";
+      el.style.webkitMaskPosition = "center";
       return;
     }
 
@@ -1618,7 +1672,7 @@
     uiTitle.textContent = "デフォルトデザインテーマ";
     themeGrid.appendChild(uiTitle);
 
-    const uiEntries = Object.values(UI_THEMES);
+    const uiEntries = DEFAULT_UI_THEME_IDS.map(id => UI_THEMES[id]).filter(Boolean);
     for (const t of uiEntries){
       const card = document.createElement("div");
       card.className = "themeCard" + (t.id === selectedUiThemeId ? " selected" : "");
@@ -1758,7 +1812,7 @@
     stampTitle.textContent = "デフォルトスタンプテーマ";
     themeGrid.appendChild(stampTitle);
 
-    const stampEntries = Object.values(STAMP_THEMES);
+    const stampEntries = DEFAULT_STAMP_THEME_IDS.map(id => STAMP_THEMES[id]).filter(Boolean);
     for (const t of stampEntries){
       const card = document.createElement("div");
       card.className = "stampCard" + (t.id === selectedStampThemeId ? " selected" : "");
@@ -1824,6 +1878,226 @@
     if (viewMode === "data") renderYearStats();
     hideThemePicker();
   });
+
+  // store
+  let storeCatalog = null;
+  let storeCatalogLoading = null;
+
+  function loadStoreCatalog(){
+    if (storeCatalog) return Promise.resolve(storeCatalog);
+    if (storeCatalogLoading) return storeCatalogLoading;
+    storeStatusEl.textContent = "読み込み中...";
+    storeCatalogLoading = fetch("./themes/catalog.json", { cache: "no-store" })
+      .then(res => {
+        if (!res.ok) throw new Error("catalog_load_failed");
+        return res.json();
+      })
+      .then(data => {
+        storeCatalog = data || null;
+        return storeCatalog;
+      })
+      .catch(() => {
+        storeStatusEl.textContent = "カタログの読み込みに失敗しました。";
+        return null;
+      })
+      .finally(() => {
+        storeCatalogLoading = null;
+      });
+    return storeCatalogLoading;
+  }
+
+  function renderStoreCatalog(catalog){
+    storeGridEl.innerHTML = "";
+    if (!catalog || !Array.isArray(catalog.themes) || catalog.themes.length === 0){
+      storeStatusEl.textContent = "テーマが見つかりません。";
+      return;
+    }
+    storeStatusEl.textContent = "";
+
+    const uiEntries = catalog.themes.filter(t => t && t.type === "ui");
+    const stampEntries = catalog.themes.filter(t => t && t.type === "stamp");
+
+    if (uiEntries.length){
+      const uiTitle = document.createElement("div");
+      uiTitle.className = "themeSectionTitle";
+      uiTitle.textContent = "ストアUIテーマ";
+      storeGridEl.appendChild(uiTitle);
+
+      for (const t of uiEntries){
+        const card = document.createElement("div");
+        card.className = "themeCard";
+
+        applyThemeTokensFromCatalog(t.cssVars, card);
+
+        const thumb = document.createElement("div");
+        thumb.className = "themeThumb";
+
+        const header = document.createElement("div");
+        header.className = "thumbHeader";
+        const prevBtn = document.createElement("div");
+        prevBtn.className = "thumbHeaderBtn";
+        prevBtn.textContent = "<";
+        const headerTitle = document.createElement("div");
+        headerTitle.className = "thumbHeaderTitle";
+        headerTitle.textContent = `${YEAR}年${String(currentMonth).padStart(2,"0")}月`;
+        const nextBtn = document.createElement("div");
+        nextBtn.className = "thumbHeaderBtn";
+        nextBtn.textContent = ">";
+        header.appendChild(prevBtn);
+        header.appendChild(headerTitle);
+        header.appendChild(nextBtn);
+
+        const body = document.createElement("div");
+        body.className = "thumbBody";
+
+        const cal = document.createElement("div");
+        cal.className = "thumbCalendar";
+        const calRow = document.createElement("div");
+        calRow.className = "thumbCalRow";
+        for (let i=0;i<8;i++){
+          const day = document.createElement("div");
+          day.className = "thumbDay" + (i===2 ? " selected" : "");
+          const dayDate = document.createElement("div");
+          dayDate.className = "thumbDayDate";
+          dayDate.textContent = String(24 + i);
+          day.appendChild(dayDate);
+          if (i===2){
+            const dayStamp = document.createElement("div");
+            const entry = getStampDef(resolvedStampTheme, STAMP_MOODS[0]);
+            renderStamp(dayStamp, entry, { baseClass: "thumbDayStamp", basePath: resolvedStampTheme.basePath });
+            day.appendChild(dayStamp);
+          }
+          calRow.appendChild(day);
+        }
+        cal.appendChild(calRow);
+
+        const content = document.createElement("div");
+        content.className = "thumbContent";
+        const diaryCard = document.createElement("div");
+        diaryCard.className = "thumbDiaryCard";
+
+        const diaryTop = document.createElement("div");
+        diaryTop.className = "thumbDiaryTop";
+        const diaryStamp = document.createElement("div");
+        const diaryEntry = getStampDef(resolvedStampTheme, STAMP_MOODS[1]);
+        renderStamp(diaryStamp, diaryEntry, { baseClass: "thumbDiaryStamp", basePath: resolvedStampTheme.basePath });
+        const diaryDate = document.createElement("div");
+        diaryDate.textContent = `${YEAR}-${String(currentMonth).padStart(2,"0")}-26`;
+        diaryTop.appendChild(diaryStamp);
+        diaryTop.appendChild(diaryDate);
+
+        const moodRow = document.createElement("div");
+        moodRow.className = "thumbMoodRow";
+        STAMP_MOODS.forEach((mood) => {
+          const dot = document.createElement("div");
+          const entry = getStampDef(resolvedStampTheme, mood);
+          renderStamp(dot, entry, { baseClass: "thumbMoodDot", basePath: resolvedStampTheme.basePath });
+          moodRow.appendChild(dot);
+        });
+
+        const goalField = document.createElement("div");
+        goalField.className = "thumbField";
+        goalField.textContent = "今日の目標";
+
+        const todoList = document.createElement("div");
+        todoList.className = "thumbTodoList";
+        const todoData = [
+          { text: "TODO", done: true },
+          { text: "TODO", done: false },
+          { text: "TODO", done: false }
+        ];
+        todoData.forEach(item => {
+          const row = document.createElement("div");
+          row.className = "thumbTodoRow";
+          const cb = document.createElement("div");
+          cb.className = "thumbTodoCheck" + (item.done ? " checked" : "");
+          const todo = document.createElement("div");
+          todo.className = "thumbTodo";
+          todo.textContent = item.text;
+          row.appendChild(cb);
+          row.appendChild(todo);
+          todoList.appendChild(row);
+        });
+
+        const memoField = document.createElement("div");
+        memoField.className = "thumbMemo";
+        memoField.textContent = "メモ（自動保存）";
+
+        diaryCard.appendChild(diaryTop);
+        diaryCard.appendChild(moodRow);
+        diaryCard.appendChild(goalField);
+        diaryCard.appendChild(todoList);
+        diaryCard.appendChild(memoField);
+
+        content.appendChild(diaryCard);
+
+        body.appendChild(cal);
+        body.appendChild(content);
+
+        thumb.appendChild(header);
+        thumb.appendChild(body);
+
+        const name = document.createElement("div");
+        name.className = "themeName";
+        name.textContent = t.name || t.id || "Theme";
+
+        card.appendChild(thumb);
+        card.appendChild(name);
+
+        storeGridEl.appendChild(card);
+      }
+    }
+
+    if (stampEntries.length){
+      const stampTitle = document.createElement("div");
+      stampTitle.className = "themeSectionTitle";
+      stampTitle.textContent = "ストアスタンプテーマ";
+      storeGridEl.appendChild(stampTitle);
+
+      for (const t of stampEntries){
+        const card = document.createElement("div");
+        card.className = "stampCard";
+
+        const thumb = document.createElement("div");
+        thumb.className = "stampThumb";
+
+        const dotsRow = document.createElement("div");
+        dotsRow.className = "stampDotsRow";
+
+        for (const mood of STAMP_MOODS){
+          const dot = document.createElement("div");
+          const fromStamps = Array.isArray(t.stamps) ? t.stamps.find(s => s && s.mood === mood) : null;
+          const entry = fromStamps ? {
+            asset: fromStamps.asset || t.assets?.file || null,
+            renderMode: fromStamps.renderMode || t.assets?.mode || "img-tag",
+            color: fromStamps.color || t.preview?.color || null,
+            className: fromStamps.className || null,
+            shape: fromStamps.shape || null
+          } : (t.assets?.file ? {
+            asset: t.assets.file,
+            renderMode: t.assets.mode || "img-tag",
+            color: t.preview?.color || null
+          } : null);
+          renderStamp(dot, entry, { baseClass: "stampPreviewDot", basePath: t.assets?.basePath || "" });
+          dotsRow.appendChild(dot);
+        }
+        thumb.appendChild(dotsRow);
+
+        const name = document.createElement("div");
+        name.className = "themeName";
+        name.textContent = t.name || t.id || "Theme";
+
+        card.appendChild(thumb);
+        card.appendChild(name);
+
+        storeGridEl.appendChild(card);
+      }
+    }
+  }
+
+  function renderStore(){
+    loadStoreCatalog().then(renderStoreCatalog);
+  }
 
   // list
   function escapePreview(s){ return (s || "").slice(0, 160); }
