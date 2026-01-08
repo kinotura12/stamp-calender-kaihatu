@@ -470,9 +470,6 @@
         day.stampId = normalizeStampId(day.stamp);
         delete day.stamp;
       }
-      if (!day.diary || typeof day.diary !== "object"){
-        day.diary = { goal:"", todos:[], memo:"" };
-      }
       out[k] = day;
     }
     return out;
