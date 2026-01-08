@@ -489,7 +489,7 @@
     return {
       stampThemeId: (obj && typeof obj.stampThemeId === "string") ? obj.stampThemeId : DEFAULT_STAMP_THEME_ID,
       uiThemeId: (obj && typeof obj.uiThemeId === "string") ? obj.uiThemeId : DEFAULT_UI_THEME_ID,
-      ownedThemeIds: (obj && Array.isArray(obj.ownedThemeIds)) ? obj.ownedThemeIds : [DEFAULT_STAMP_THEME_ID],
+      ownedThemeIds: normalizeOwnedThemeIds(obj && Array.isArray(obj.ownedThemeIds) ? obj.ownedThemeIds : []),
       themeByMonth: (obj && typeof obj.themeByMonth === "object" && obj.themeByMonth !== null) ? obj.themeByMonth : {},
       diaryLayout: sanitizeLayout(obj && Array.isArray(obj.diaryLayout) ? obj.diaryLayout : defaultDiaryLayout()),
       schemaVersion: obj?.schemaVersion || APP_SCHEMA_VERSION
@@ -515,13 +515,37 @@
   let breakdownOpen = false;
 
   // settings (theme + diary layout)
+  function getDefaultOwnedThemeIds(){
+    return [
+      ...DEFAULT_UI_THEME_IDS.map(id => `ui:${id}`),
+      ...DEFAULT_STAMP_THEME_IDS.map(id => `stamp:${id}`)
+    ];
+  }
+  function normalizeOwnedThemeIds(ids){
+    const out = new Set(getDefaultOwnedThemeIds());
+    if (Array.isArray(ids)){
+      for (const raw of ids){
+        if (typeof raw !== "string") continue;
+        if (raw.includes(":")){
+          out.add(raw);
+          continue;
+        }
+        if (UI_THEMES[raw] || DEFAULT_UI_THEME_IDS.includes(raw)){
+          out.add(`ui:${raw}`);
+        } else {
+          out.add(`stamp:${raw}`);
+        }
+      }
+    }
+    return Array.from(out);
+  }
 
   function loadSettings(){
     try {
       const s = window.storageApi.loadSettings();
       const stampThemeId = (typeof s.stampThemeId === "string") ? s.stampThemeId : DEFAULT_STAMP_THEME_ID;
       const uiThemeId = (typeof s.uiThemeId === "string") ? s.uiThemeId : DEFAULT_UI_THEME_ID;
-      const ownedThemeIds = Array.isArray(s.ownedThemeIds) ? s.ownedThemeIds : [DEFAULT_STAMP_THEME_ID];
+      const ownedThemeIds = normalizeOwnedThemeIds(s.ownedThemeIds);
       const themeByMonth = (s && typeof s.themeByMonth === "object" && s.themeByMonth !== null) ? s.themeByMonth : {};
       const diaryLayout = sanitizeLayout(Array.isArray(s.diaryLayout) ? s.diaryLayout : defaultDiaryLayout());
       return { stampThemeId, uiThemeId, ownedThemeIds, themeByMonth, diaryLayout, schemaVersion: APP_SCHEMA_VERSION };
@@ -529,7 +553,7 @@
       return {
         stampThemeId: DEFAULT_STAMP_THEME_ID,
         uiThemeId: DEFAULT_UI_THEME_ID,
-        ownedThemeIds: [DEFAULT_STAMP_THEME_ID],
+        ownedThemeIds: getDefaultOwnedThemeIds(),
         themeByMonth: {},
         diaryLayout: defaultDiaryLayout(),
         schemaVersion: APP_SCHEMA_VERSION
@@ -540,7 +564,7 @@
     const payload = {
       stampThemeId: (obj && typeof obj.stampThemeId === "string") ? obj.stampThemeId : DEFAULT_STAMP_THEME_ID,
       uiThemeId: (obj && typeof obj.uiThemeId === "string") ? obj.uiThemeId : DEFAULT_UI_THEME_ID,
-      ownedThemeIds: (obj && Array.isArray(obj.ownedThemeIds)) ? obj.ownedThemeIds : [DEFAULT_STAMP_THEME_ID],
+      ownedThemeIds: normalizeOwnedThemeIds(obj && Array.isArray(obj.ownedThemeIds) ? obj.ownedThemeIds : []),
       themeByMonth: (obj && typeof obj.themeByMonth === "object" && obj.themeByMonth !== null) ? obj.themeByMonth : {},
       diaryLayout: sanitizeLayout(obj && Array.isArray(obj.diaryLayout) ? obj.diaryLayout : defaultDiaryLayout()),
       schemaVersion: APP_SCHEMA_VERSION
@@ -606,18 +630,64 @@
 
   let lastAppliedThemeKey = null;
 
+  function applyStampThemeFromCatalog(theme){
+    if (!theme || theme.type !== "stamp"){
+      applyStampTheme(DEFAULT_STAMP_THEME_ID);
+      return;
+    }
+    const entries = Array.isArray(theme.stamps) ? theme.stamps : [];
+    const byMood = new Map();
+    for (const mood of STAMP_MOODS){
+      const fromDef = entries.find(s => s?.mood === mood) || {};
+      byMood.set(mood, {
+        mood,
+        label: fromDef.label || mood,
+        className: fromDef.className || null,
+        color: fromDef.color || null,
+        asset: fromDef.asset || theme.assets?.file || null,
+        renderMode: fromDef.renderMode || theme.assets?.mode || "img-tag",
+        shape: fromDef.shape || "circle"
+      });
+    }
+    settings.stampThemeId = theme.id || DEFAULT_STAMP_THEME_ID;
+    resolvedStampTheme = { id: settings.stampThemeId, byMood, basePath: theme.assets?.basePath || "" };
+    renderStampPickerButtons();
+  }
+
   function buildThemeKey(){
     const monthKey = `${YEAR}-${String(currentMonth).padStart(2,'0')}`;
-    const uiThemeId = validUiThemeId(settings.uiThemeId);
-    const stampThemeId = validStampThemeId(getStampThemeIdForMonth(monthKey));
-    return { themeKey: `${uiThemeId}::${stampThemeId}`, uiThemeId, stampThemeId };
+    const uiFromBuiltIn = UI_THEMES[settings.uiThemeId] ? settings.uiThemeId : null;
+    const uiFromCatalog = findCatalogTheme("ui", settings.uiThemeId);
+    const uiThemeId = uiFromBuiltIn ? uiFromBuiltIn : (uiFromCatalog?.id || DEFAULT_UI_THEME_ID);
+
+    const stampIdRaw = getStampThemeIdForMonth(monthKey);
+    const stampFromBuiltIn = STAMP_THEMES[stampIdRaw] ? stampIdRaw : null;
+    const stampFromCatalog = findCatalogTheme("stamp", stampIdRaw);
+    const stampThemeId = stampFromBuiltIn ? stampFromBuiltIn : (stampFromCatalog?.id || DEFAULT_STAMP_THEME_ID);
+
+    return { themeKey: `${uiThemeId}::${stampThemeId}`, uiThemeId, stampThemeId, uiFromCatalog, stampFromCatalog };
   }
 
   function applyThemeIfNeeded(){
-    const { themeKey, uiThemeId, stampThemeId } = buildThemeKey();
+    const { themeKey, uiThemeId, stampThemeId, uiFromCatalog, stampFromCatalog } = buildThemeKey();
     if (themeKey == lastAppliedThemeKey) return false;
-    applyUiTheme(uiThemeId);
-    applyStampTheme(stampThemeId);
+    if (UI_THEMES[uiThemeId]){
+      applyUiTheme(uiThemeId);
+    } else if (uiFromCatalog){
+      applyThemeTokensFromCatalog(uiFromCatalog.cssVars, document.documentElement);
+      document.documentElement.setAttribute("data-ui-theme", uiThemeId);
+      settings.uiThemeId = uiThemeId;
+    } else {
+      applyUiTheme(DEFAULT_UI_THEME_ID);
+    }
+
+    if (STAMP_THEMES[stampThemeId]){
+      applyStampTheme(stampThemeId);
+    } else if (stampFromCatalog){
+      applyStampThemeFromCatalog(stampFromCatalog);
+    } else {
+      applyStampTheme(DEFAULT_STAMP_THEME_ID);
+    }
     lastAppliedThemeKey = themeKey;
     return true;
   }
@@ -1879,6 +1949,11 @@
     hideThemePicker();
   });
 
+  function findCatalogTheme(type, id){
+    if (!id || !storeCatalog || !Array.isArray(storeCatalog.themes)) return null;
+    return storeCatalog.themes.find(t => t && t.type === type && t.id === id) || null;
+  }
+
   // store
   let storeCatalog = null;
   let storeCatalogLoading = null;
@@ -1925,7 +2000,7 @@
 
       for (const t of uiEntries){
         const card = document.createElement("div");
-        card.className = "themeCard";
+        card.className = "themeCard storeCard";
 
         applyThemeTokensFromCatalog(t.cssVars, card);
 
@@ -2041,8 +2116,45 @@
         name.className = "themeName";
         name.textContent = t.name || t.id || "Theme";
 
+        const owned = settings.ownedThemeIds && settings.ownedThemeIds.includes(`ui:${t.id}`);
+        if (owned){
+          const ownedBadge = document.createElement("div");
+          ownedBadge.className = "storeOwned";
+          ownedBadge.textContent = "保有中";
+          thumb.appendChild(ownedBadge);
+        }
+
+        const actions = document.createElement("div");
+        actions.className = "storeActions";
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.type = "button";
+        btn.textContent = owned ? "適用" : "購入";
+        btn.addEventListener("click", () => {
+          if (!owned){
+            const next = new Set(normalizeOwnedThemeIds(settings.ownedThemeIds));
+            next.add(`ui:${t.id}`);
+            settings.ownedThemeIds = Array.from(next);
+            saveSettings(settings);
+            renderStore();
+            return;
+          }
+          settings.uiThemeId = t.id;
+          applyThemeIfNeeded();
+          saveSettings(settings);
+          renderCalendar();
+          if (selectedDate){
+            renderDiaryBlocks();
+            setDiaryStampFromDate(selectedDate);
+          }
+          if (viewMode === "list") renderList();
+          if (viewMode === "data") renderYearStats();
+        });
+        actions.appendChild(btn);
+
         card.appendChild(thumb);
         card.appendChild(name);
+        card.appendChild(actions);
 
         storeGridEl.appendChild(card);
       }
@@ -2056,7 +2168,7 @@
 
       for (const t of stampEntries){
         const card = document.createElement("div");
-        card.className = "stampCard";
+        card.className = "stampCard storeCard";
 
         const thumb = document.createElement("div");
         thumb.className = "stampThumb";
@@ -2087,8 +2199,45 @@
         name.className = "themeName";
         name.textContent = t.name || t.id || "Theme";
 
+        const owned = settings.ownedThemeIds && settings.ownedThemeIds.includes(`stamp:${t.id}`);
+        if (owned){
+          const ownedBadge = document.createElement("div");
+          ownedBadge.className = "storeOwned";
+          ownedBadge.textContent = "保有中";
+          thumb.appendChild(ownedBadge);
+        }
+
+        const actions = document.createElement("div");
+        actions.className = "storeActions";
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.type = "button";
+        btn.textContent = owned ? "適用" : "購入";
+        btn.addEventListener("click", () => {
+          if (!owned){
+            const next = new Set(normalizeOwnedThemeIds(settings.ownedThemeIds));
+            next.add(`stamp:${t.id}`);
+            settings.ownedThemeIds = Array.from(next);
+            saveSettings(settings);
+            renderStore();
+            return;
+          }
+          settings.stampThemeId = t.id;
+          applyThemeIfNeeded();
+          saveSettings(settings);
+          renderCalendar();
+          if (selectedDate){
+            renderDiaryBlocks();
+            setDiaryStampFromDate(selectedDate);
+          }
+          if (viewMode === "list") renderList();
+          if (viewMode === "data") renderYearStats();
+        });
+        actions.appendChild(btn);
+
         card.appendChild(thumb);
         card.appendChild(name);
+        card.appendChild(actions);
 
         storeGridEl.appendChild(card);
       }
@@ -2417,5 +2566,21 @@
   applyThemeIfNeeded();
   renderCalendar();
   setView("calendar");
+  const monthKey = `${YEAR}-${String(currentMonth).padStart(2,'0')}`;
+  const needsCatalogUi = !UI_THEMES[settings.uiThemeId];
+  const needsCatalogStamp = !STAMP_THEMES[getStampThemeIdForMonth(monthKey)];
+  if (needsCatalogUi || needsCatalogStamp){
+    loadStoreCatalog().then(() => {
+      if (applyThemeIfNeeded()){
+        renderCalendar();
+        if (selectedDate){
+          renderDiaryBlocks();
+          setDiaryStampFromDate(selectedDate);
+        }
+        if (viewMode === "list") renderList();
+        if (viewMode === "data") renderYearStats();
+      }
+    });
+  }
 
 })();
