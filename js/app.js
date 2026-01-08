@@ -589,8 +589,20 @@
     settings.uiThemeId = id;
   }
 
+  function createDefaultDay(){
+    return { stampId: null, diary: { goal:"", todos: [], memo:"" } };
+  }
+
+  function normalizeTodoForRead(t){
+    return {
+      id: (t && typeof t.id === "string") ? t.id : null,
+      done: !!(t && t.done),
+      text: (t && typeof t.text === "string") ? t.text : ""
+    };
+  }
+
   function ensureDay(dateKey){
-    if (!state[dateKey]) state[dateKey] = { stampId: null, diary: { goal:"", todos: [], memo:"" } };
+    if (!state[dateKey]) state[dateKey] = createDefaultDay();
 
     if (state[dateKey].stamp !== undefined && state[dateKey].stampId === undefined){
       const legacy = state[dateKey].stamp;
@@ -610,19 +622,31 @@
     if (!Array.isArray(d.todos)) d.todos = [];
     if (typeof d.memo !== "string") d.memo = "";
 
+    if (d.todos.length > 0){
+      d.todos = d.todos.map(normalizeTodoForRead);
+    }
+  }
+
+  function prepareDayForEdit(dateKey){
+    ensureDay(dateKey);
+    const d = state[dateKey].diary;
+
+    if (!Array.isArray(d.todos)) d.todos = [];
+
     if (d.todos.length === 0){
       d.todos = [
         { id: uid(), done:false, text:"" },
         { id: uid(), done:false, text:"" },
         { id: uid(), done:false, text:"" },
       ];
-    } else {
-      d.todos = d.todos.map(t => ({
-        id: (t && typeof t.id === "string") ? t.id : uid(),
-        done: !!(t && t.done),
-        text: (t && typeof t.text === "string") ? t.text : ""
-      }));
+      return;
     }
+
+    d.todos = d.todos.map(t => ({
+      id: (t && typeof t.id === "string") ? t.id : uid(),
+      done: !!(t && t.done),
+      text: (t && typeof t.text === "string") ? t.text : ""
+    }));
   }
   function persist(){
     saveStateForMonth(currentMonth, state);
@@ -992,7 +1016,7 @@
   // diary open
   function openDiary(dateKey){
     selectedDate = dateKey;
-    ensureDay(dateKey);
+    prepareDayForEdit(dateKey);
     persist();
 
     diaryWrap.style.display = "";
