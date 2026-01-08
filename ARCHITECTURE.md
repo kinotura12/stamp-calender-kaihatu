@@ -1,253 +1,251 @@
 # ARCHITECTURE.md
-
-（Calendar / Diary App – 2026-01-06版）
+（Sticker Calendar / Diary App）
 
 ---
 
-## 0. 目的
+## 0. 目的（共通）
 
 本アプリは以下を満たすことを目的とする。
 
-- 日付ベースの記録（気分スタンプ、目標、TODO、メモ等）を **10年以上保持**できる
-- 日記パネル内のUIを **ウィジェット単位で追加 / 削除 / 並べ替え / 一部カスタム**できる
-- 「テーマ（装飾＋スタンプ）」を **月ごとに差し替え可能**で、過去ログが壊れない
-- 将来、**分析パネル（集計・グラフ）**を安全に追加できる
+- 日付ベースの記録（気分スタンプ、目標、TODO、メモ等）を長期保持できる
+- 日記パネル内のUIをブロック単位で並べ替え・表示切替できる
+- テーマ（装飾＋スタンプ）を差し替えても過去ログが壊れない
+- 将来、分析（集計・グラフ）を安全に追加できる
 
 ---
 
-## 1. 絶対ルール（レイヤ分離）
+# V1：現行実装（2026-01 時点 / 実装準拠）
 
-内部構造は必ず次の3レイヤに分離する。
+## V1-1. データレイヤの現実
 
-この分離は **設計上の最優先事項**であり、例外を作らない。
+V1では、保存構造は「固定フォーム型」。
 
-### 1.1 facts（記録）
+- facts（実データ）＝ monthData の日付ごとの固定構造
+- layout（配置）＝ settings.diaryLayout
+- theme（見た目）＝ settings の theme 指定 + app.js の定義
 
-- 日付ごとの実際の入力値のみを保持する
-- 分析は **このレイヤのみ**を参照する
-- 見た目・配置・テーマ情報を一切含めない
+※ V2で想定する widgetInstanceId / entries の汎用構造は未導入。
 
-### 1.2 layout（配置）
+---
 
-- 日記パネルにどのウィジェットを、どの順序で表示するか
-- 並び替えや表示/非表示を管理
+## V1-2. 永続化キー（localStorage）
+
+### Settings（年単位）
+
+- key: `sticker-cal:settings:2026`
+- 内容: テーマ・レイアウト等
+
+### MonthData（月単位）
+
+- primary key: `sticker-cal:month:2026-01`
+- legacy key: `sticker-cal:2026-01`
+- 読み込みは primary 優先、保存は両方に書き込む
+
+---
+
+## V1-3. MonthData（facts）構造
+
+- dateKey = `YYYY-MM-DD`
+- state[dateKey] = DayRecord
+
+```js
+{
+  stampId: "mood_1" | "mood_2" | "mood_3" | "mood_4" | "mood_5" | null,
+  diary: {
+    goal: string,
+    todos: { id: string, done: boolean, text: string }[],
+    memo: string
+  }
+}
+```
+
+正規化方針（読み込み時）
+
+- legacy の stamp → stampId に変換
+- stampId は mood_1..5 のみ許可（不正値は null）
+- diary 欠損時は { goal:"", todos:[], memo:"" } を補完
+- todos は UI 都合により最低1件以上を保証
+
+---
+
+## V1-4. Settings 構造（layout + theme）
+
+```js
+{
+  schemaVersion: number,
+  stampThemeId: string,
+  uiThemeId: string,
+  ownedThemeIds: string[],
+  themeByMonth: { [YYYY-MM]: stampThemeId },
+  diaryLayout: DiaryBlock[]
+}
+```
+
+DiaryBlock
+
+```js
+{
+  instanceId: string,
+  type: "mood" | "goal" | "todo" | "memo",
+  name: string,
+  visible: boolean
+}
+```
+
+配置ルール
+
+- mood は常に先頭固定
+- goal は常に2番目固定
+- それ以外は順序・表示切替が可能
+
+---
+
+## V1-5. テーマ実装の現実
+
+テーマ定義は app.js 内の定数として保持。
+
+- STAMP_THEMES
+- UI_THEMES
+
+facts には meaningId（mood_1..5）のみを保存し、見た目（色・画像・class）は theme側で解決する。
+
+---
+
+## V1-6. マイグレーション方針
+
+- sanitize による補完で救済する設計
+- schemaVersion は「保存形式が変わる時のみ」更新
+- bulk import 時は version 超過を検知して拒否
+
+---
+
+## V1-7. 現行フォルダ構成
+
+```bash
+/index.html
+/css/style.css
+/js/storage.js
+/js/app.js
+/assets/stamps/...
+/ARCHITECTURE.md
+```
+
+---
+
+# V2：将来設計（憲法 / 移行先）
+
+## V2-1. レイヤ分離（絶対ルール）
+
+**facts**
+
+- 日付ごとの実入力値のみ
+- layout / theme を含めない
+
+**layout**
+
+- 表示順・表示有無
 - layout変更で facts は変わらない
 
-### 1.3 theme（見た目）
+**theme**
 
-- 色・背景・スタンプ画像などの装飾
+- 色・背景・スタンプ画像など
 - theme変更で facts は変わらない
 
-### 禁止事項
+---
 
-- UIの並び順を保存データ順にしない
-- 色コード / 画像URL / CSS値を facts に保存しない
-- theme依存の値を facts に埋め込まない
+## V2-2. ID設計
+
+**meaningId**
+
+- facts に保存する唯一の意味ID
+- 例: mood_1..mood_5
+
+**assetRef**
+
+- theme 内で meaningId を描画する参照
+- facts に見た目情報は保存しない
 
 ---
 
-## 2. 用語定義（この憲法で使う言葉）
+## V2-3. facts（entries）モデル
 
-- **facts**
-    
-    永続化される「記録の事実データ」
-    
-- **entries**
-    
-    facts のうち、日付 × ウィジェット単位で整理された値集合
-    
-- **analysis**
-    
-    facts を加工して得られる派生データ（原則として保存しない）
-    
-
----
-
-## 3. ID設計（過去ログ保護の核心）
-
-### 3.1 themeId（商品ID）
-
-- 形式：`YYYY-MM-<slug>`
-- 例：`2026-01-dots`
-- `themes/<themeId>/theme.json` に必ず含める
-
-### 3.2 meaningId（意味ID）
-
-- **factsに保存する唯一の意味ID**
-- テーマが変わっても共通の固定ID
-- 例：`mood_1` ～ `mood_5`
-
-### 3.3 assetRef（見た目参照）
-
-- theme 内で meaningId を描画するための参照
-- 例：`dot_pink`
-
-**facts には meaningId 以外を保存しない。**
-
----
-
-## 4. データモデル（facts / entries）
-
-### 4.1 管理単位
-
-- `monthKey = YYYY-MM` 単位で管理
-- 内部キーは `dateKey = YYYY-MM-DD`
-
-### 4.2 entries 構造
-
-```
+```js
 entries[dateKey][widgetInstanceId] = {
   value,
   updatedAt,
-  deletedAt?// 将来同期用（論理削除）
+  deletedAt?
 }
-
 ```
 
-### 4.3 template別 value 例
-
-- moodPicker → `meaningId`
-- todoList → `{ text, done, createdAt?, doneAt? }[]`
-- singleLine → `string`
-- multiLine → `string`
+管理単位は monthKey = YYYY-MM
 
 ---
 
-## 5. ウィジェット設計（可変UIの骨格）
+## V2-4. Widgetモデル
 
-### 5.1 WidgetTemplate（型）
+WidgetTemplate
 
-- `templateType`
-- `dataSchema`（factsに保存される値の契約）
-- `defaultConfig`（初期表示名・制約）
+- templateType
+- dataSchema
+- defaultConfig
 
-### 5.2 WidgetInstance（実体）
+WidgetInstance
 
-- `widgetInstanceId`（UUID等）
-- `templateType`
-- `config`（ユーザー変更可能な表示名・設定）
+- widgetInstanceId
+- templateType
+- config
 
-### 5.3 Layout（配置）
+Layout
 
-- `layout.diaryPanelOrder: widgetInstanceId[]`
-
-### 重要原則
-
-- `widgetInstanceId → templateType` の対応は
-    
-    **settings.widgetInstances が唯一の正**
-    
-- entries 側に templateType を重複保持しない
+- layout.diaryPanelOrder: widgetInstanceId[]
 
 ---
 
-## 6. settings（設定データ）
+## V2-5. settings（完全分離）
 
-settings は facts とは完全に別ストア。
+含めるもの：
 
-### 6.1 含めるもの
+- schemaVersion
+- ownedThemeIds
+- activeThemeId
+- themeByMonth
+- widgetInstances
+- layout
+- uiPrefs
 
-- `schemaVersion`
-- `ownedThemeIds`
-- `activeThemeId`
-- `themeByMonth`
-- `widgetInstances`
-- `layout`
-- `uiPrefs`（折りたたみ状態など）
-
-### 6.2 含めてはいけないもの
+含めないもの：
 
 - 日付ごとの記録値
-- 集計・分析結果
-- theme依存の色・画像そのもの
+- 分析・集計結果
+- theme依存の色・画像
 
 ---
 
-## 7. テーマ仕様
+## V2-6. テーマ仕様
 
-- `themes/<themeId>/theme.json` がテーマ定義
-- meaningId → assetRef の対応を提供
-- CSS変数（トークン）で装飾を切り替える
+- themes/<themeId>/theme.json
+- meaningId → assetRef の対応
+- CSS変数トークンで装飾
 
-### フォールバック規則（必須）
+フォールバック必須：
 
-- 未購入 / 取得失敗 / 不正 themeId → `default`
-- `themeByMonth[monthKey]` が不正 → `default`
+- 不正 themeId → default
+- 不正 month 指定 → default
 
 ---
 
-## 8. 永続化・将来同期を見据えた設計
+## V2-7. 永続化・マイグレーション
 
-### 8.1 保存戦略
-
-- 当面は localStorage 可
-- **storage API を抽象化し IndexedDB へ移行可能にする**
-
-### 8.2 マイグレーション
-
-- `schemaVersion` により **一度だけ実行**
-- 移行前データのバックアップを保持
+- storage API を抽象化
+- IndexedDB / 同期対応を想定
+- schemaVersion による段階移行
 - 失敗しても起動不能にしない
 
-### 8.3 同期を見据えた余白
-
-- `updatedAt` を全 entry に保持
-- `deletedAt` による論理削除を許容
-- monthKey 単位保存を崩さない
-
 ---
 
-## 9. 全期間データの扱い（重要）
+## V2-8. 目標フォルダ構成
 
-全期間の表示・分析は **必ず制限付き**で行う。
-
-### 想定ユースケース
-
-1. **月間総覧**
-    - 1か月分のみ表示
-2. **分析パネル**
-    - 期間指定（月 / 年 / 任意）
-    - 集計・グラフ表示
-3. **期間集計**
-    - 件数・文字数などの裏データ
-
-### 原則
-
-- 全期間の entries を一括描画しない
-- 期間指定 or 遅延読み込み前提
-
----
-
-## 10. 分析パネル（Analysis Architecture）
-
-### 10.1 基本原則
-
-- 分析は **facts レイヤのみ**を参照
-- layout / theme / UI情報は参照しない
-- 見た目変更で分析結果が変わってはならない
-
-### 10.2 正規化（必須）
-
-- null / 欠損 / 型揺れを分析前に吸収
-- facts 自体を書き換えない
-
-### 10.3 読み込み順序
-
-1. 期間指定から monthKey を確定
-2. 月単位で entries をロード
-3. 必要な widgetInstanceId のみ抽出
-4. 集計処理を実行
-
-### 10.4 月次サマリ（将来）
-
-- 導入する場合も **月単位のみ**
-- 全期間キャッシュは禁止
-
----
-
-## 11. フォルダ構成（GitHub Pages前提）
-
-```
+```bash
 /index.html
 /css/style.css
 /js/app.js
@@ -257,25 +255,4 @@ settings は facts とは完全に別ストア。
 /js/widgets/*.js
 /themes/default/theme.json
 /themes/default/assets/...
-
 ```
-
-- ES Modules 使用
-- 外部ライブラリ不使用
-
----
-
-## 12. 変更の原則
-
-- 既存 UI の class / id を極力維持
-- 変更は段階的に行う
-- **動作維持 → 構造化 → 拡張** の順を守る
-
----
-
-## 最終まとめ
-
-- facts / layout / theme を絶対に混ぜない
-- meaningId によって過去ログを守る
-- 分割ロードと正規化で 10年運用に耐える
-- 拡張はすべて「壊さず足す」
