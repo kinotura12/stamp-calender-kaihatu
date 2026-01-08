@@ -589,6 +589,24 @@
     settings.uiThemeId = id;
   }
 
+  let lastAppliedThemeKey = null;
+
+  function buildThemeKey(){
+    const monthKey = `${YEAR}-${String(currentMonth).padStart(2,'0')}`;
+    const uiThemeId = validUiThemeId(settings.uiThemeId);
+    const stampThemeId = validStampThemeId(getStampThemeIdForMonth(monthKey));
+    return { themeKey: `${uiThemeId}::${stampThemeId}`, uiThemeId, stampThemeId };
+  }
+
+  function applyThemeIfNeeded(){
+    const { themeKey, uiThemeId, stampThemeId } = buildThemeKey();
+    if (themeKey == lastAppliedThemeKey) return false;
+    applyUiTheme(uiThemeId);
+    applyStampTheme(stampThemeId);
+    lastAppliedThemeKey = themeKey;
+    return true;
+  }
+
   function createDefaultDay(){
     return { stampId: null, diary: { goal:"", todos: [], memo:"" } };
   }
@@ -661,7 +679,16 @@
   function shouldShowGoalPreview(){
     return window.matchMedia("(min-width: 760px)").matches;
   }
-  window.addEventListener("resize", () => renderCalendar());
+  let resizeRenderQueued = false;
+  function scheduleResizeRender(){
+    if (resizeRenderQueued) return;
+    resizeRenderQueued = true;
+    window.requestAnimationFrame(() => {
+      resizeRenderQueued = false;
+      renderCalendar();
+    });
+  }
+  window.addEventListener("resize", scheduleResizeRender);
 
   function goalPreviewText(goal){
     const s = (goal || "").trim();
@@ -746,7 +773,7 @@
     currentMonth = nextMonth;
     state = loadStateForMonth(currentMonth);
 
-    applyStampTheme(getStampThemeIdForMonth(`${YEAR}-${String(currentMonth).padStart(2,'0')}`));
+    applyThemeIfNeeded();
     renderCalendar();
     setView("calendar");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -868,13 +895,11 @@
     }
 
     if (mode === "img-tag" && assetUrl){
+      el.classList.add("imgStamp");
       const img = document.createElement("img");
       img.className = "stampImg";
       img.decoding = "async";
       img.loading = "lazy";
-      img.onload = () => {
-        el.classList.add("imgStamp");
-      };
       img.onerror = () => {
         img.remove();
         el.classList.remove("imgStamp");
@@ -886,11 +911,11 @@
     }
 
     if (mode === "image-bg" && assetUrl){
+      el.classList.add("imgStamp");
       el.style.backgroundImage = `url("${assetUrl}")`;
       el.style.backgroundSize = "contain";
       el.style.backgroundRepeat = "no-repeat";
       el.style.backgroundPosition = "center";
-      el.classList.add("imgStamp");
       return;
     }
 
@@ -903,7 +928,7 @@
     state[dateKey].stampId = normalizeStampId(stampIdOrNull);
     persist();
 
-    renderCalendar();
+    updateCalendarDot(dateKey);
     if (selectedDate === dateKey){
       setDiaryStampFromDate(dateKey);
       renderDiaryBlocks(); // mood widget + any preview sync
@@ -942,9 +967,17 @@
     const entry = resolveStampEntryForId(stampId);
     renderStamp(el, entry, { baseClass: "miniStamp", basePath: resolvedStampTheme.basePath });
   }
+  function updateCalendarDot(dateKey){
+    const dot = daysEl.querySelector(`.dot[aria-label="${dateKey} スタンプ"]`);
+    if (!dot) return;
+    const entry = resolveStampEntryForId(state[dateKey]?.stampId);
+    renderStamp(dot, entry, { baseClass: "dot", basePath: resolvedStampTheme.basePath });
+  }
 
   // render calendar (dynamic weeks)
-  function renderCalendar(){
+  let lastBuiltMonth = null;
+
+  function buildCalendarGrid(){
     daysEl.innerHTML = "";
 
     const first = new Date(YEAR, currentMonth - 1, 1);
@@ -954,8 +987,6 @@
     const cellsNeeded = firstDow + dim;
     const weeks = Math.ceil(cellsNeeded / 7);
     const totalCells = weeks * 7;
-
-    const showGoal = shouldShowGoalPreview();
 
     for (let i=0; i<totalCells; i++){
       const day = i - firstDow + 1;
@@ -971,19 +1002,12 @@
 
       if (inMonth){
         const key = ymd(currentMonth, day);
-        ensureDay(key);
+        cell.setAttribute("data-date", key);
 
-        if (key === selectedDate) cell.classList.add("selected");
 
-        if (showGoal){
-          const g = (state[key].diary && typeof state[key].diary.goal === "string") ? state[key].diary.goal : "";
-          const pv = goalPreviewText(g);
-          const pvEl = document.createElement("div");
-          pvEl.className = "goalPreview show" + (pv ? "" : " empty");
-          pvEl.textContent = pv || "—";
-          cell.appendChild(pvEl);
-        }
-
+        const pvEl = document.createElement("div");
+        pvEl.className = "goalPreview";
+        cell.appendChild(pvEl);
         cell.addEventListener("click", () => {
           hidePicker();
           openDiary(key);
@@ -994,8 +1018,6 @@
         dot.className = "dot";
         dot.setAttribute("aria-label", `${key} スタンプ`);
 
-        const entry = resolveStampEntryForId(state[key].stampId);
-        renderStamp(dot, entry, { baseClass: "dot", basePath: resolvedStampTheme.basePath });
 
         dot.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -1011,6 +1033,46 @@
 
       daysEl.appendChild(cell);
     }
+    lastBuiltMonth = currentMonth;
+  }
+
+  function paintCalendar(){
+    const showGoal = shouldShowGoalPreview();
+    const cells = daysEl.querySelectorAll(".cell[data-date]");
+    for (const cell of cells){
+      const key = cell.getAttribute("data-date");
+      if (!key) continue;
+      ensureDay(key);
+
+      cell.classList.toggle("selected", key === selectedDate);
+
+      const pvEl = cell.querySelector(".goalPreview");
+      if (pvEl){
+        if (showGoal){
+          const g = (state[key].diary && typeof state[key].diary.goal === "string") ? state[key].diary.goal : "";
+          const pv = goalPreviewText(g);
+          pvEl.classList.add("show");
+          pvEl.classList.toggle("empty", !pv);
+        } else {
+          pvEl.classList.remove("show");
+          pvEl.classList.remove("empty");
+          pvEl.textContent = "";
+        }
+      }
+
+      const dot = cell.querySelector(".dot");
+      if (dot){
+        const entry = resolveStampEntryForId(state[key].stampId);
+        renderStamp(dot, entry, { baseClass: "dot", basePath: resolvedStampTheme.basePath });
+      }
+    }
+  }
+
+  function renderCalendar(){
+    if (lastBuiltMonth !== currentMonth || !daysEl.hasChildNodes()){
+      buildCalendarGrid();
+    }
+    paintCalendar();
   }
 
   // diary open
@@ -1747,15 +1809,14 @@
     if (!selectedUiThemeId && !selectedStampThemeId) return;
     if (selectedUiThemeId){
       settings.uiThemeId = validUiThemeId(selectedUiThemeId);
-      applyUiTheme(settings.uiThemeId);
     }
     if (selectedStampThemeId){
       settings.stampThemeId = validStampThemeId(selectedStampThemeId);
       if (!settings.themeByMonth || typeof settings.themeByMonth !== "object") settings.themeByMonth = {};
       const monthKey = `${YEAR}-${String(currentMonth).padStart(2,"0")}`;
       settings.themeByMonth[monthKey] = settings.stampThemeId;
-      applyStampTheme(settings.stampThemeId);
     }
+    applyThemeIfNeeded();
     saveSettings(settings);
     renderCalendar();
     if (selectedDate){
@@ -2005,8 +2066,7 @@
       schemaVersion: incomingSettingsVersion
     });
     settings = migratedSettings;
-    applyStampTheme(settings.stampThemeId);
-    applyUiTheme(settings.uiThemeId);
+    applyThemeIfNeeded();
     saveSettings(settings);
 
     for (let m=MIN_MONTH; m<=MAX_MONTH; m++){
@@ -2055,7 +2115,7 @@
 
     state = loadStateForMonth(currentMonth);
     settings = loadSettings();
-    applyUiTheme(settings.uiThemeId);
+    applyThemeIfNeeded();
     selectedDate = null;
     diaryWrap.style.display = "none";
     hidePicker();
@@ -2086,8 +2146,7 @@
   // close menu on Esc already
 
   // init
-  applyUiTheme(settings.uiThemeId);
-  applyStampTheme(getStampThemeIdForMonth(`${YEAR}-${String(currentMonth).padStart(2,'0')}`));
+  applyThemeIfNeeded();
   renderCalendar();
   setView("calendar");
 
