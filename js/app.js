@@ -1875,13 +1875,7 @@
       const preview = document.createElement("div");
       const d = state[key].diary;
 
-      const hasAny =
-        (state[key].stampId) ||
-        (d.goal && d.goal.trim()) ||
-        (d.memo && d.memo.trim()) ||
-        (d.todos && d.todos.some(t => (t.text||"").trim() || t.done));
-
-      if (hasAny) filledCount++;
+      if (hasAnyEntry(state[key])) filledCount++;
 
       const todoLines = (d.todos || [])
         .filter(t => (t.text||"").trim() || t.done)
@@ -1912,6 +1906,16 @@
   function monthState(month){
     return (month === currentMonth) ? state : loadStateForMonth(month);
   }
+  function hasAnyEntry(dayObj){
+    if (!dayObj || typeof dayObj !== "object") return false;
+    if (dayObj.stampId) return true;
+    const d = (dayObj.diary && typeof dayObj.diary === "object") ? dayObj.diary : null;
+    if (!d) return false;
+    if (d.goal && String(d.goal).trim()) return true;
+    if (d.memo && String(d.memo).trim()) return true;
+    if (Array.isArray(d.todos) && d.todos.some(t => t && ((t.text && String(t.text).trim()) || t.done))) return true;
+    return false;
+  }
   function countRecordedDaysForMonth(month){
     const dim = daysInMonthOf(month);
     const st = monthState(month);
@@ -1919,14 +1923,7 @@
     for (let day=1; day<=dim; day++){
       const key = ymd(month, day);
       const it = st[key];
-      if (!it) continue;
-      const d = it.diary || {};
-      const hasAny =
-        (it.stampId) ||
-        (d.goal && d.goal.trim()) ||
-        (d.memo && d.memo.trim()) ||
-        (Array.isArray(d.todos) && d.todos.some(t => (t.text||"").trim() || t.done));
-      if (hasAny) used++;
+      if (hasAnyEntry(it)) used++;
     }
     return { used, dim };
   }
