@@ -321,6 +321,12 @@
     #calendarPanel,
     #list{
       touch-action: pan-y;
+      overscroll-behavior: contain;
+    }
+    .fab,
+    .fabBubble,
+    .fabMemoBubble{
+      touch-action: none;
     }
     :root{
       --fab-inset: 48px;

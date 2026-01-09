@@ -1323,30 +1323,26 @@
     let startY = 0;
     let startTime = 0;
 
-    targetEl.addEventListener("pointerdown", (e) => {
-      if (e.pointerType !== "touch") return;
-      if (e.target.closest("input, textarea, select, button")) return;
+    const shouldIgnoreTarget = (el) => !!el?.closest("input, textarea, select, button");
+
+    const startTracking = (x, y, id) => {
       tracking = true;
-      pointerId = e.pointerId;
-      startX = e.clientX;
-      startY = e.clientY;
+      pointerId = id;
+      startX = x;
+      startY = y;
       startTime = Date.now();
-      targetEl.setPointerCapture?.(pointerId);
-    });
+    };
 
-    targetEl.addEventListener("pointermove", (e) => {
-      if (!tracking || e.pointerId !== pointerId) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+    const maybePrevent = (dx, dy, event) => {
       if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2){
-        e.preventDefault();
+        event.preventDefault();
       }
-    });
+    };
 
-    function finishSwipe(e){
-      if (!tracking || e.pointerId !== pointerId) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+    const finishTracking = (x, y, id) => {
+      if (!tracking || id !== pointerId) return;
+      const dx = x - startX;
+      const dy = y - startY;
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
       const elapsed = Date.now() - startTime;
@@ -1357,10 +1353,50 @@
       }
       tracking = false;
       pointerId = null;
-    }
+    };
 
-    targetEl.addEventListener("pointerup", finishSwipe);
-    targetEl.addEventListener("pointercancel", finishSwipe);
+    targetEl.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "touch") return;
+      if (shouldIgnoreTarget(e.target)) return;
+      startTracking(e.clientX, e.clientY, e.pointerId);
+      targetEl.setPointerCapture?.(e.pointerId);
+    });
+
+    targetEl.addEventListener("pointermove", (e) => {
+      if (!tracking || e.pointerId !== pointerId) return;
+      maybePrevent(e.clientX - startX, e.clientY - startY, e);
+    });
+
+    targetEl.addEventListener("pointerup", (e) => {
+      finishTracking(e.clientX, e.clientY, e.pointerId);
+    });
+    targetEl.addEventListener("pointercancel", (e) => {
+      finishTracking(e.clientX, e.clientY, e.pointerId);
+    });
+
+    targetEl.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return;
+      if (shouldIgnoreTarget(e.target)) return;
+      const t = e.touches[0];
+      startTracking(t.clientX, t.clientY, "touch");
+    }, { passive: true });
+
+    targetEl.addEventListener("touchmove", (e) => {
+      if (!tracking || pointerId !== "touch") return;
+      const t = e.touches[0];
+      maybePrevent(t.clientX - startX, t.clientY - startY, e);
+    }, { passive: false });
+
+    targetEl.addEventListener("touchend", (e) => {
+      if (pointerId !== "touch") return;
+      const t = e.changedTouches[0];
+      finishTracking(t.clientX, t.clientY, "touch");
+    });
+    targetEl.addEventListener("touchcancel", () => {
+      if (pointerId !== "touch") return;
+      tracking = false;
+      pointerId = null;
+    });
   }
 
   attachMonthSwipe(calendarPanel);
