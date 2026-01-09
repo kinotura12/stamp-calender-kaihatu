@@ -355,6 +355,7 @@
   // “instanceId” を持つ設計にして、将来同種ブロック複数に対応できる形にしておく。
   const BLOCK_TEMPLATES = {
     mood: { type:"mood",  defaultName:"今日の気分は？", lockOrder: true,  lockName: true },
+    moodlog: { type:"moodlog", defaultName:"気分ログ", lockOrder: false, lockName: false },
     goal: { type:"goal",  defaultName:"今日の目標",     lockOrder: true,  lockName: false },
     todo: { type:"todo",  defaultName:"TODOリスト",     lockOrder: false, lockName: false },
     memo: { type:"memo",  defaultName:"自由メモ",       lockOrder: false, lockName: false },
@@ -365,6 +366,7 @@
     return [
       { instanceId: "blk_mood_fixed", type:"mood", name: BLOCK_TEMPLATES.mood.defaultName, visible:true },
       { instanceId: "blk_goal_fixed", type:"goal", name: BLOCK_TEMPLATES.goal.defaultName, visible:true },
+      { instanceId: "blk_moodlog_1",  type:"moodlog", name: BLOCK_TEMPLATES.moodlog.defaultName, visible:true },
       { instanceId: "blk_todo_1",     type:"todo", name: BLOCK_TEMPLATES.todo.defaultName, visible:true },
       { instanceId: "blk_memo_1",     type:"memo", name: BLOCK_TEMPLATES.memo.defaultName, visible:true },
     ];
@@ -375,6 +377,24 @@
     if (STAMP_MOODS.includes(stampId)) return stampId;
     if (LEGACY_STAMP_ID_MAP[stampId]) return LEGACY_STAMP_ID_MAP[stampId];
     return null;
+  }
+  function normalizeStampEvent(raw){
+    if (!raw || typeof raw !== "object") return null;
+    const moodId = normalizeStampId(raw.moodId || raw.stampId || raw.mood);
+    if (!moodId) return null;
+    const id = (typeof raw.id === "string") ? raw.id : null;
+    const createdAt = (typeof raw.createdAt === "string") ? raw.createdAt : null;
+    const memo = (raw.memo && typeof raw.memo === "object") ? raw.memo : null;
+    return { id, moodId, createdAt, memo };
+  }
+  function normalizeStampEventsForRead(list){
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    for (const item of list){
+      const ev = normalizeStampEvent(item);
+      if (ev) out.push(ev);
+    }
+    return out;
   }
 
   function daysInMonthOf(month){
@@ -388,6 +408,14 @@
   // -- Private --
   function uid(){
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+  }
+  function legacyStampCreatedAt(dateKey){
+    return `${dateKey}T12:00:00`;
+  }
+  function buildLegacyStampEvent(dateKey, stampId){
+    const moodId = normalizeStampId(stampId);
+    if (!moodId) return null;
+    return { id: uid(), moodId, createdAt: legacyStampCreatedAt(dateKey) };
   }
 
   // ===== App Wiring =====
@@ -416,6 +444,10 @@
   const saveCustomizeBtn = document.getElementById("saveCustomize");
 
   const diaryBlocksEl = document.getElementById("diaryBlocks");
+  const logDetailPanel = document.getElementById("logDetailPanel");
+  const closeLogDetailBtn = document.getElementById("closeLogDetail");
+  const logDetailListEl = document.getElementById("logDetailList");
+  const logDetailSubEl = document.getElementById("logDetailSub");
   const blockListEl = document.getElementById("blockList");
 
   const inlineConfirm = document.getElementById("inlineConfirm");
@@ -476,13 +508,26 @@
         day.stampId = normalizeStampId(day.stamp);
         delete day.stamp;
       }
+      day.stampEvents = normalizeStampEventsForRead(day.stampEvents);
       out[k] = day;
     }
     return out;
   }
   function migrateMonthData(raw){
-    // 追加項目が出たときはここで変換/補完を行う。現状は sanitize のみ。
-    return sanitizeMonthData(raw);
+    // 追加項目が出たときはここで変換/補完を行う。
+    const out = sanitizeMonthData(raw);
+    let migrated = false;
+    for (const [dateKey, day] of Object.entries(out)){
+      const hasEvents = Array.isArray(day.stampEvents) && day.stampEvents.length > 0;
+      if (day.stampId && !hasEvents){
+        const ev = buildLegacyStampEvent(dateKey, day.stampId);
+        if (ev){
+          day.stampEvents = [ev];
+          migrated = true;
+        }
+      }
+    }
+    return { data: out, migrated };
   }
   function migrateSettings(obj){
     // 追加フィールドや形式変更があればここで補正する。
@@ -499,7 +544,9 @@
   // -- Public --
   function loadStateForMonth(month){
     const raw = window.storageApi.loadMonthData(month) || {};
-    return sanitizeMonthData(raw);
+    const { data, migrated } = migrateMonthData(raw);
+    if (migrated) saveStateForMonth(month, data);
+    return data;
   }
   function saveStateForMonth(month, obj){
     window.storageApi.saveMonthData(month, obj);
@@ -508,11 +555,15 @@
   // state
   let currentMonth = 1;
   let state = loadStateForMonth(currentMonth);
+  let derivedCache = null;
+  let derivedDirty = true;
+  let derivedMonth = null;
   let selectedDate = null;
   let pickerDate = null;
   let pickerSource = null;
   let viewMode = "calendar"; // calendar | list | data
   let breakdownOpen = false;
+  const DERIVED_SCOPE_ORDER = { calendar: 1, stats: 2 };
 
   // settings (theme + diary layout)
   function getDefaultOwnedThemeIds(){
@@ -699,7 +750,7 @@
   }
 
   function createDefaultDay(){
-    return { stampId: null, diary: { goal:"", todos: [], memo:"" } };
+    return { stampId: null, stampEvents: [], diary: { goal:"", todos: [], memo:"" } };
   }
 
   function normalizeTodoForRead(t){
@@ -723,6 +774,8 @@
     } else {
       state[dateKey].stampId = null;
     }
+
+    state[dateKey].stampEvents = normalizeStampEventsForRead(state[dateKey].stampEvents);
 
     if (!state[dateKey].diary) state[dateKey].diary = { goal:"", todos: [], memo:"" };
 
@@ -759,6 +812,107 @@
   }
   function persist(){
     saveStateForMonth(currentMonth, state);
+    derivedDirty = true;
+  }
+  function resetDerivedCache(){
+    derivedDirty = true;
+    derivedMonth = null;
+    derivedCache = null;
+  }
+  function moodValueFromId(moodId){
+    if (!moodId) return null;
+    const idx = STAMP_MOODS.indexOf(moodId);
+    return (idx >= 0) ? (idx + 1) : null;
+  }
+  function buildDerivedForMonth(monthState, scope){
+    const byDayCount = {};
+    const byDayLastEventId = {};
+    const timelineByDay = {};
+    const eventIndex = {};
+    let lastEvent = null;
+
+    const needsStats = (scope === "stats");
+    const byDayMoodHistogram = needsStats ? {} : null;
+    const byDayAverageMood = needsStats ? {} : null;
+
+    for (const [dateKey, day] of Object.entries(monthState)){
+      const events = Array.isArray(day?.stampEvents) ? day.stampEvents : [];
+      if (!events.length) continue;
+
+      let count = 0;
+      let dayMoodSum = 0;
+      let dayMoodCount = 0;
+      const dayHistogram = needsStats ? {} : null;
+      const ids = [];
+
+      for (let i=0; i<events.length; i++){
+        const ev = events[i];
+        const moodId = normalizeStampId(ev?.moodId);
+        if (!moodId) continue;
+
+        const eventId = (typeof ev.id === "string" && ev.id) ? ev.id : `tmp_${dateKey}_${i}`;
+        if (!eventIndex[eventId]){
+          eventIndex[eventId] = { ...ev, id: eventId, moodId };
+        }
+        ids.push(eventId);
+        count++;
+
+        if (needsStats){
+          dayHistogram[moodId] = (dayHistogram[moodId] || 0) + 1;
+          const moodValue = moodValueFromId(moodId);
+          if (moodValue){
+            dayMoodSum += moodValue;
+            dayMoodCount += 1;
+          }
+        }
+      }
+
+      if (count){
+        byDayCount[dateKey] = count;
+        const lastId = ids[ids.length - 1];
+        byDayLastEventId[dateKey] = lastId;
+        timelineByDay[dateKey] = ids;
+        if (lastId && eventIndex[lastId]){
+          lastEvent = { ...eventIndex[lastId], dateKey };
+        }
+        if (needsStats){
+          byDayMoodHistogram[dateKey] = dayHistogram;
+          if (dayMoodCount){
+            byDayAverageMood[dateKey] = dayMoodSum / dayMoodCount;
+          }
+        }
+      }
+    }
+
+    return {
+      scope,
+      byDayCount,
+      byDayLastEventId,
+      timelineByDay,
+      eventIndex,
+      lastEvent,
+      byDayMoodHistogram,
+      byDayAverageMood
+    };
+  }
+  function rebuildDerivedIfNeeded(scope = "calendar"){
+    const currentScope = derivedCache?.scope || "calendar";
+    if (!derivedDirty && derivedMonth === currentMonth && derivedCache && DERIVED_SCOPE_ORDER[currentScope] >= DERIVED_SCOPE_ORDER[scope]){
+      return derivedCache;
+    }
+    derivedCache = buildDerivedForMonth(state, scope);
+    derivedDirty = false;
+    derivedMonth = currentMonth;
+    return derivedCache;
+  }
+  function resolveDisplayStampId(dateKey, derived){
+    const fallback = normalizeStampId(state[dateKey]?.stampId);
+    if (!derived) return fallback;
+    const lastId = derived.byDayLastEventId && derived.byDayLastEventId[dateKey];
+    if (!lastId) return fallback;
+    const ev = derived.eventIndex && derived.eventIndex[lastId];
+    const moodId = normalizeStampId(ev?.moodId);
+    return moodId || fallback;
   }
 
   function resolveStampEntryForId(stampId){
@@ -821,6 +975,7 @@
     hidePicker();
     hideInlineConfirm();
     closeCustomize(false);
+    closeLogDetail();
 
     const calendarVisible = (mode !== "data" && mode !== "store");
     dowRow.classList.toggle("hidden", !calendarVisible);
@@ -836,6 +991,7 @@
         diaryWrap.style.display = "";
         diaryPanel.classList.add("show");
         customPanel.classList.remove("show"); // 普段は出さない
+        logDetailPanel.classList.remove("show");
       } else {
         diaryWrap.style.display = "none";
       }
@@ -872,6 +1028,7 @@
 
     currentMonth = nextMonth;
     state = loadStateForMonth(currentMonth);
+    resetDerivedCache();
 
     applyThemeIfNeeded();
     renderCalendar();
@@ -1052,7 +1209,12 @@
 
   function applyStamp(dateKey, stampIdOrNull){
     ensureDay(dateKey);
-    state[dateKey].stampId = normalizeStampId(stampIdOrNull);
+    const moodId = normalizeStampId(stampIdOrNull);
+    state[dateKey].stampId = moodId;
+    if (moodId){
+      if (!Array.isArray(state[dateKey].stampEvents)) state[dateKey].stampEvents = [];
+      state[dateKey].stampEvents.push({ id: uid(), moodId, createdAt: new Date().toISOString() });
+    }
     persist();
 
     updateCalendarDot(dateKey);
@@ -1097,7 +1259,9 @@
   function updateCalendarDot(dateKey){
     const dot = daysEl.querySelector(`.dot[aria-label="${dateKey} スタンプ"]`);
     if (!dot) return;
-    const entry = resolveStampEntryForId(state[dateKey]?.stampId);
+    const derived = rebuildDerivedIfNeeded("calendar");
+    const stampId = resolveDisplayStampId(dateKey, derived);
+    const entry = resolveStampEntryForId(stampId);
     renderStamp(dot, entry, { baseClass: "dot", basePath: resolvedStampTheme.basePath });
   }
 
@@ -1163,7 +1327,7 @@
     lastBuiltMonth = currentMonth;
   }
 
-  function paintCalendar(){
+  function paintCalendar(derived){
     const showGoal = shouldShowGoalPreview();
     const cells = daysEl.querySelectorAll(".cell[data-date]");
     for (const cell of cells){
@@ -1189,7 +1353,8 @@
 
       const dot = cell.querySelector(".dot");
       if (dot){
-        const entry = resolveStampEntryForId(state[key].stampId);
+        const stampId = resolveDisplayStampId(key, derived);
+        const entry = resolveStampEntryForId(stampId);
         renderStamp(dot, entry, { baseClass: "dot", basePath: resolvedStampTheme.basePath });
       }
     }
@@ -1199,7 +1364,8 @@
     if (lastBuiltMonth !== currentMonth || !daysEl.hasChildNodes()){
       buildCalendarGrid();
     }
-    paintCalendar();
+    const derived = rebuildDerivedIfNeeded("calendar");
+    paintCalendar(derived);
   }
 
   // diary open
@@ -1211,8 +1377,10 @@
     diaryWrap.style.display = "";
     diaryPanel.classList.add("show");
 　　customPanel.classList.remove("show"); // 普段は出さない
+    logDetailPanel.classList.remove("show");
 
     slider.classList.remove("customize");
+    slider.classList.remove("logDetail");
 
     setView("calendar");
     diaryDateEl.textContent = dateKey;
@@ -1243,6 +1411,8 @@
 
       if (blk.type === "mood"){
         diaryBlocksEl.appendChild(renderMoodBlock(blk));
+      } else if (blk.type === "moodlog"){
+        diaryBlocksEl.appendChild(renderMoodLogBlock(blk));
       } else if (blk.type === "goal"){
         diaryBlocksEl.appendChild(renderGoalBlock(blk));
       } else if (blk.type === "todo"){
@@ -1250,6 +1420,9 @@
       } else if (blk.type === "memo"){
         diaryBlocksEl.appendChild(renderMemoBlock(blk));
       }
+    }
+    if (slider.classList.contains("logDetail")){
+      renderLogDetailPanel();
     }
   }
 
@@ -1291,6 +1464,119 @@
 
     wrap.appendChild(row);
     return wrap;
+  }
+
+  function getStampEventsForDate(dateKey){
+    ensureDay(dateKey);
+    return Array.isArray(state[dateKey].stampEvents) ? state[dateKey].stampEvents : [];
+  }
+  function formatLogTime(iso){
+    if (!iso) return "--:--";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "--:--";
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
+    return `${hh}:${mm}`;
+  }
+  function sortEventsByTime(events){
+    const sorted = events.map((ev, idx) => ({ ev, idx }));
+    const timeKey = (item) => {
+      const t = Date.parse(item.ev?.createdAt);
+      return Number.isNaN(t) ? null : t;
+    };
+    sorted.sort((a,b) => {
+      const at = timeKey(a);
+      const bt = timeKey(b);
+      if (at === null && bt === null) return a.idx - b.idx;
+      if (at === null) return 1;
+      if (bt === null) return -1;
+      return at - bt;
+    });
+    return sorted.map(item => item.ev);
+  }
+  function renderLogRows(container, events, options = {}){
+    const { emptyClass = "diaryLogEmpty", rowClass = "diaryLogItem", timeClass = "diaryLogTime" } = options;
+    container.innerHTML = "";
+    if (!events.length){
+      const empty = document.createElement("div");
+      empty.className = emptyClass;
+      empty.textContent = "記録なし";
+      container.appendChild(empty);
+      return;
+    }
+    for (const ev of events){
+      const moodId = normalizeStampId(ev?.moodId);
+      const entry = moodId ? getStampDef(resolvedStampTheme, moodId) : null;
+      const label = entry?.label || moodId || "unknown";
+
+      const row = document.createElement("div");
+      row.className = rowClass;
+
+      const time = document.createElement("div");
+      time.className = timeClass;
+      time.textContent = formatLogTime(ev?.createdAt);
+
+      const mood = document.createElement("div");
+      mood.className = "diaryLogMood";
+      mood.textContent = label;
+
+      row.appendChild(time);
+      row.appendChild(mood);
+      container.appendChild(row);
+    }
+  }
+  function renderMoodLogBlock(blk){
+    const section = document.createElement("div");
+    section.className = "section";
+
+    const head = document.createElement("div");
+    head.className = "sectionHead";
+
+    const left = document.createElement("div");
+    left.className = "sectionTitle";
+    left.textContent = blk.name || "気分ログ";
+
+    const right = document.createElement("div");
+    right.className = "diaryLogHead";
+
+    const count = document.createElement("div");
+    count.className = "diaryLogCount";
+
+    const detailBtn = document.createElement("button");
+    detailBtn.className = "btn";
+    detailBtn.type = "button";
+    detailBtn.textContent = "詳細";
+    detailBtn.style.padding = "6px 10px";
+    detailBtn.style.minWidth = "auto";
+
+    head.appendChild(left);
+    right.appendChild(count);
+    head.appendChild(right);
+    section.appendChild(head);
+
+    const body = document.createElement("div");
+    body.className = "diaryLogBody";
+    section.appendChild(body);
+
+    const events = sortEventsByTime(getStampEventsForDate(selectedDate));
+    const rows = events.slice(0, 7);
+    count.textContent = `${rows.length}/${events.length}件`;
+    renderLogRows(body, rows);
+
+    right.appendChild(detailBtn);
+    detailBtn.addEventListener("click", () => openLogDetail());
+
+    return section;
+  }
+  function renderLogDetailPanel(){
+    if (!selectedDate) return;
+    const events = sortEventsByTime(getStampEventsForDate(selectedDate));
+    if (logDetailSubEl){
+      logDetailSubEl.textContent = `${selectedDate} / ${events.length}件`;
+    }
+    if (logDetailListEl){
+      renderLogRows(logDetailListEl, events, { rowClass: "logDetailItem", timeClass: "logDetailTime", emptyClass: "diaryLogEmpty" });
+    }
   }
 
   function renderGoalBlock(blk){
@@ -1500,6 +1786,9 @@
     persist();
     selectedDate = null;
     diaryWrap.style.display = "none";
+    closeLogDetail();
+    calendarPanel.classList.remove("hidden");
+    dowRow.classList.remove("hidden");
     hideInlineConfirm();
     renderCalendar();
     if (viewMode === "list") renderList();
@@ -1509,6 +1798,7 @@
   // ===== Customize Panel (骨格) =====
   function openCustomize(){
     if (!selectedDate) return;
+    closeLogDetail();
     customizeDraft = JSON.parse(JSON.stringify(ensureDiaryLayout()));
     renderCustomizeList();
     slider.classList.add("customize");
@@ -1527,14 +1817,30 @@
     slider.classList.remove("customize");
   }
 
+  function openLogDetail(){
+    if (!selectedDate) return;
+    closeCustomize(false);
+    calendarPanel.classList.add("hidden");
+    dowRow.classList.add("hidden");
+    renderLogDetailPanel();
+    logDetailPanel.classList.add("show");
+    slider.classList.add("logDetail");
+  }
+  function closeLogDetail(){
+    slider.classList.remove("logDetail");
+    logDetailPanel.classList.remove("show");
+  }
+
   function sanitizeLayout(layout){
     // mood must be 1st, goal must be 2nd
     const safe = Array.isArray(layout) ? layout.filter(Boolean) : [];
     const mood = safe.find(b => b.type === "mood") || { instanceId:"blk_mood_fixed", type:"mood", name:BLOCK_TEMPLATES.mood.defaultName, visible:true };
     const goal = safe.find(b => b.type === "goal") || { instanceId:"blk_goal_fixed", type:"goal", name:BLOCK_TEMPLATES.goal.defaultName, visible:true };
+    const moodlog = safe.find(b => b.type === "moodlog") || { instanceId:"blk_moodlog_1", type:"moodlog", name:BLOCK_TEMPLATES.moodlog.defaultName, visible:true };
 
-    // remove duplicates of mood/goal (keep first)
-    const rest = safe.filter(b => b.type !== "mood" && b.type !== "goal");
+    // remove duplicates of mood/goal/moodlog (keep first)
+    const rest = safe.filter(b => b.type !== "mood" && b.type !== "goal" && b.type !== "moodlog");
+    rest.unshift(moodlog);
 
     // normalize fields
     function norm(b){
@@ -1713,6 +2019,12 @@
   customPanel.classList.remove("show"); // ←追加
 }
 
+  function exitLogDetailAndShowCalendar(){
+    calendarPanel.classList.remove("hidden");
+    dowRow.classList.remove("hidden");
+    logDetailPanel.classList.remove("show");
+  }
+
   closeCustomizeBtn.addEventListener("click", () => {
     closeCustomize(false);
     exitCustomizeAndShowCalendar();
@@ -1725,6 +2037,11 @@
     closeCustomize(true);
     ensureDiaryLayout();
     exitCustomizeAndShowCalendar();
+  });
+
+  closeLogDetailBtn.addEventListener("click", () => {
+    closeLogDetail();
+    exitLogDetailAndShowCalendar();
   });
 
   // ===== UI Theme Picker =====
@@ -2258,6 +2575,7 @@
   function escapePreview(s){ return (s || "").slice(0, 160); }
 
   function renderList(){
+    const derived = rebuildDerivedIfNeeded("calendar");
     const dim = daysInMonthOf(currentMonth);
     let filledCount = 0;
     listBodyEl.innerHTML = "";
@@ -2276,7 +2594,8 @@
       left.className = "listLeft";
 
       const stamp = document.createElement("div");
-      setMiniStampClass(stamp, state[key].stampId);
+      const stampId = resolveDisplayStampId(key, derived);
+      setMiniStampClass(stamp, stampId);
 
       const date = document.createElement("div");
       date.className = "listDate";
@@ -2355,6 +2674,7 @@
   }
 
   function renderYearStats(){
+    rebuildDerivedIfNeeded("stats");
     let total = 0;
     const monthLines = [];
     for (let m=MIN_MONTH; m<=MAX_MONTH; m++){
@@ -2497,13 +2817,14 @@
       if (Object.prototype.hasOwnProperty.call(monthsObj, key)){
         const incoming = monthsObj[key];
         if (incoming && typeof incoming === "object"){
-          const migrated = migrateMonthData(incoming);
-          saveStateForMonth(m, migrated);
+          const { data } = migrateMonthData(incoming);
+          saveStateForMonth(m, data);
         }
       }
     }
 
     state = loadStateForMonth(currentMonth);
+    resetDerivedCache();
     selectedDate = null;
     diaryWrap.style.display = "none";
     hidePicker();
@@ -2521,6 +2842,7 @@
     window.storageApi.clearAllMonths();
 
     state = loadStateForMonth(currentMonth);
+    resetDerivedCache();
     selectedDate = null;
     diaryWrap.style.display = "none";
     hidePicker();
@@ -2537,6 +2859,7 @@
     window.storageApi.resetAll();
 
     state = loadStateForMonth(currentMonth);
+    resetDerivedCache();
     settings = loadSettings();
     applyThemeIfNeeded();
     selectedDate = null;
