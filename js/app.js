@@ -1301,7 +1301,7 @@
     closeCustomize(false);
 
     selectedDate = null;
-    viewMode = "calendar";
+    const targetView = viewMode;
 
     currentMonth = nextMonth;
     state = loadStateForMonth(currentMonth);
@@ -1309,7 +1309,7 @@
 
     applyThemeIfNeeded();
     renderCalendar();
-    setView("calendar");
+    setView(targetView);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   prevMonthBtn.addEventListener("click", () => changeMonth(currentMonth - 1));
@@ -1322,6 +1322,7 @@
     let startX = 0;
     let startY = 0;
     let startTime = 0;
+    let isHorizontal = false;
 
     const shouldIgnoreTarget = (el) => !!el?.closest("input, textarea, select, button");
 
@@ -1331,6 +1332,8 @@
       startX = x;
       startY = y;
       startTime = Date.now();
+      isHorizontal = false;
+      targetEl.style.transition = "none";
     };
 
     const maybePrevent = (dx, dy, event) => {
@@ -1348,8 +1351,23 @@
       const elapsed = Date.now() - startTime;
       const minDistance = 45;
       const maxTime = 900;
-      if (absX > minDistance && absX > absY * 1.2 && elapsed < maxTime){
-        changeMonth(dx < 0 ? currentMonth + 1 : currentMonth - 1);
+      if (isHorizontal && absX > minDistance && absX > absY * 1.2 && elapsed < maxTime){
+        const width = targetEl.getBoundingClientRect().width || 0;
+        const off = dx < 0 ? -Math.min(width * 0.35, 220) : Math.min(width * 0.35, 220);
+        targetEl.style.transition = "transform .18s ease";
+        targetEl.style.transform = `translateX(${off}px)`;
+        window.setTimeout(() => {
+          targetEl.style.transition = "none";
+          targetEl.style.transform = "";
+          changeMonth(dx < 0 ? currentMonth + 1 : currentMonth - 1);
+        }, 180);
+      } else {
+        targetEl.style.transition = "transform .14s ease";
+        targetEl.style.transform = "translateX(0px)";
+        window.setTimeout(() => {
+          targetEl.style.transition = "none";
+          targetEl.style.transform = "";
+        }, 140);
       }
       tracking = false;
       pointerId = null;
@@ -1364,7 +1382,18 @@
 
     targetEl.addEventListener("pointermove", (e) => {
       if (!tracking || e.pointerId !== pointerId) return;
-      maybePrevent(e.clientX - startX, e.clientY - startY, e);
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (!isHorizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2){
+        isHorizontal = true;
+      }
+      if (isHorizontal){
+        maybePrevent(dx, dy, e);
+        const width = targetEl.getBoundingClientRect().width || 0;
+        const maxShift = Math.min(120, width * 0.25);
+        const shift = Math.max(-maxShift, Math.min(maxShift, dx));
+        targetEl.style.transform = `translateX(${shift}px)`;
+      }
     });
 
     targetEl.addEventListener("pointerup", (e) => {
@@ -1384,7 +1413,18 @@
     targetEl.addEventListener("touchmove", (e) => {
       if (!tracking || pointerId !== "touch") return;
       const t = e.touches[0];
-      maybePrevent(t.clientX - startX, t.clientY - startY, e);
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (!isHorizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2){
+        isHorizontal = true;
+      }
+      if (isHorizontal){
+        maybePrevent(dx, dy, e);
+        const width = targetEl.getBoundingClientRect().width || 0;
+        const maxShift = Math.min(120, width * 0.25);
+        const shift = Math.max(-maxShift, Math.min(maxShift, dx));
+        targetEl.style.transform = `translateX(${shift}px)`;
+      }
     }, { passive: false });
 
     targetEl.addEventListener("touchend", (e) => {
