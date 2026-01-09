@@ -18,6 +18,7 @@
       --shadow-sm: 0 4px 10px rgba(0,0,0,.25);
       --shadow-md: 0 12px 30px rgba(0,0,0,.35);
       --shadow-lg: 0 18px 44px rgba(0,0,0,.5);
+      --shadow-stamp: 0 6px 16px rgba(0,0,0,.35);
       --shadow-card: var(--shadow-md);
       --shadow-popover: var(--shadow-lg);
 
@@ -83,6 +84,7 @@
       --shadow-sm: 0 4px 10px rgba(0,0,0,.25);
       --shadow-md: 0 12px 30px rgba(0,0,0,.35);
       --shadow-lg: 0 18px 44px rgba(0,0,0,.5);
+      --shadow-stamp: 0 6px 16px rgba(0,0,0,.35);
       --shadow-card: var(--shadow-md);
       --shadow-popover: var(--shadow-lg);
 
@@ -146,6 +148,7 @@
       --shadow-sm: 0 4px 10px rgba(0,0,0,.08);
       --shadow-md: 0 8px 20px rgba(0,0,0,.08);
       --shadow-lg: 0 12px 26px rgba(0,0,0,.14);
+      --shadow-stamp: 0 6px 14px rgba(0,0,0,.18);
       --shadow-card: var(--shadow-md);
       --shadow-popover: var(--shadow-lg);
 
@@ -193,7 +196,7 @@
     body{
       margin:0;
       font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
-      background: radial-gradient(1100px 700px at 20% 0%, #1a2040 0%, var(--bg) 60%);
+      background: radial-gradient(1100px 700px at 20% 0%, color-mix(in srgb, var(--accent) 30%, var(--bg)) 0%, var(--bg) 60%);
       color: var(--text-strong);
       -webkit-tap-highlight-color: transparent;
     }
@@ -207,8 +210,8 @@
       top: 0;
       z-index: 20;
       backdrop-filter: blur(10px);
-      background: rgba(15,17,21,.65);
-      border-bottom: 1px solid rgba(255,255,255,.06);
+      background: color-mix(in srgb, var(--bg) 65%, transparent);
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .wrap{
@@ -328,7 +331,7 @@
       border: 2px solid var(--ring);
       background: var(--fab-color, var(--pink));
       color: color-mix(in srgb, var(--surface-2) 80%, transparent);
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-stamp);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -506,7 +509,7 @@
       height: var(--stamp-l);
       border-radius: 999px;
       border: 2px solid var(--ring);
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-stamp);
       cursor: pointer;
       --pick-ty: 0px;
       --pick-scale: 1;
@@ -540,7 +543,7 @@
     .cell{
       position: relative;
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.06);
+      border: 1px solid var(--border-subtle);
       background: var(--card2);
       padding: 8px;
       cursor: pointer;
@@ -553,12 +556,8 @@
       cursor: default;
     }
     .cell.selected{
-      outline: 2px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.055);
-    }
-    :root[data-ui-theme="ui_light_default"] .cell.selected{
-      outline: 2px solid rgba(0,0,0,.18);
-      background: rgba(0,0,0,.04);
+      outline: 2px solid color-mix(in srgb, var(--ring) 70%, transparent);
+      background: color-mix(in srgb, var(--surface-3) 60%, transparent);
     }
 
     .daynum{
@@ -572,7 +571,7 @@
       font-size: 12px;
       font-weight: 800;
       letter-spacing: .01em;
-      color: rgba(232,236,243,.92);
+      color: var(--text-normal);
       padding-right: 30px;
       display: none;
     }
@@ -601,7 +600,7 @@
       transition: transform .08s ease;
     }
     .dot:active{ transform: scale(.95); }
-    .dot.filled{ border-color: rgba(255,255,255,.18); box-shadow: 0 4px 10px rgba(0,0,0,.28); }
+    .dot.filled{ border-color: var(--ring); box-shadow: var(--shadow-sm); }
     .dot.pink{ background: var(--pink); }
     .dot.orange{ background: var(--orange); }
     .dot.yellow{ background: var(--yellow); }
@@ -617,9 +616,9 @@
       gap: 10px;
       padding: 10px 12px 12px;
       border-radius: 14px;
-      background: rgba(23,26,33,.92);
-      border: 1px solid rgba(255,255,255,.12);
-      box-shadow: 0 16px 40px rgba(0,0,0,.45);
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-popover);
       backdrop-filter: blur(10px);
       min-width: 190px;
     }
@@ -627,7 +626,7 @@
 
     .pickerTitle{
       font-size: 12px;
-      color: rgba(232,236,243,.9);
+      color: var(--text-normal);
       letter-spacing: .02em;
       display:flex;
       align-items:center;
@@ -636,7 +635,7 @@
     .pickerTitle .miniDot{
       width: 10px; height: 10px;
       border-radius: 999px;
-      border: 2px solid rgba(255,255,255,.22);
+      border: 2px solid var(--ring);
       opacity: .85;
     }
 
@@ -650,8 +649,8 @@
       width: var(--stamp-m);
       height: var(--stamp-m);
       border-radius: 999px;
-      border: 2px solid rgba(255,255,255,.22);
-      box-shadow: 0 10px 22px rgba(0,0,0,.35);
+      border: 2px solid var(--ring);
+      box-shadow: var(--shadow-md);
       cursor: pointer;
       transition: transform .08s ease, opacity .12s ease;
     }
@@ -671,19 +670,19 @@
       display:block;
       border-radius: inherit;
       pointer-events: none;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,.16));
+      filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--bg) 70%, transparent));
     }
 
     .caret{
       position: fixed;
       z-index: 9998;
       width: 10px; height: 10px;
-      background: rgba(23,26,33,.92);
-      border-left: 1px solid rgba(255,255,255,.12);
-      border-top: 1px solid rgba(255,255,255,.12);
+      background: var(--card);
+      border-left: 1px solid var(--card-border);
+      border-top: 1px solid var(--card-border);
       transform: rotate(45deg);
       display:none;
-      box-shadow: 0 16px 40px rgba(0,0,0,.45);
+      box-shadow: var(--shadow-popover);
       backdrop-filter: blur(10px);
     }
     .caret.show{ display:block; }
@@ -692,7 +691,7 @@
     .themeOverlay{
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.35);
+      background: color-mix(in srgb, var(--bg) 65%, transparent);
       backdrop-filter: blur(4px);
       display:none;
       z-index: 80;
@@ -706,10 +705,10 @@
       width: min(70vw, 640px);
       max-width: 640px;
       max-height: 90vh;
-      background: rgba(23,26,33,.95);
-      border: 1px solid rgba(255,255,255,.12);
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      border: 1px solid var(--border-strong);
       border-radius: 18px;
-      box-shadow: 0 18px 44px rgba(0,0,0,.5);
+      box-shadow: var(--shadow-popover);
       padding: 14px;
       display:none;
       z-index: 90;
@@ -741,21 +740,21 @@
     }
     .themeCard{
       border-radius: 14px;
-      border: 1px solid var(--card-border, rgba(255,255,255,.12));
-      background: var(--card, rgba(255,255,255,.06));
+      border: 1px solid var(--card-border);
+      background: var(--card);
       padding: 12px;
       cursor:pointer;
       transition: border-color .12s ease, transform .12s ease;
       display:flex;
       flex-direction:column;
       gap: 10px;
-      box-shadow: var(--card-shadow, 0 12px 30px rgba(0,0,0,.35));
-      color: var(--text-normal, #d8dde6);
+      box-shadow: var(--card-shadow);
+      color: var(--text-normal);
     }
-    .themeCard:hover{ border-color: var(--accent, rgba(98,199,255,.6)); transform: translateY(-1px); }
+    .themeCard:hover{ border-color: color-mix(in srgb, var(--accent) 70%, transparent); transform: translateY(-1px); }
     .themeCard.selected{
-      border-color: var(--accent, rgba(98,199,255,.9));
-      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+      border-color: var(--accent);
+      box-shadow: var(--shadow-md);
     }
     .themeThumb{
       border-radius: 12px;
@@ -764,7 +763,7 @@
       background: var(--panel, var(--card));
       position: relative;
       overflow: hidden;
-      border: 1px solid var(--card-border, rgba(255,255,255,.08));
+      border: 1px solid var(--card-border);
       flex: 0 0 auto;
       padding: 10px;
       box-sizing: border-box;
@@ -775,27 +774,27 @@
     .themeThumb .thumbHeader{
       height: 22px;
       border-radius: 10px;
-      background: var(--surface-2, rgba(255,255,255,.08));
+      background: var(--surface-2);
       display:flex;
       align-items:center;
       justify-content:flex-start;
       padding: 0 8px;
       font-size: 11px;
-      color: var(--text-strong, #e8ecf3);
+      color: var(--text-strong);
       gap: 6px;
     }
     .thumbHeaderBtn{
       width: 18px;
       height: 18px;
       border-radius: 6px;
-      border: 1px solid var(--card-border, rgba(255,255,255,.12));
-      background: var(--btn-bg, rgba(255,255,255,.06));
-      color: var(--text-strong, #e8ecf3);
+      border: 1px solid var(--card-border);
+      background: var(--btn-bg);
+      color: var(--text-strong);
       display:flex;
       align-items:center;
       justify-content:center;
       font-size: 12px;
-      box-shadow: var(--btn-shadow, 0 3px 8px rgba(0,0,0,.18));
+      box-shadow: var(--btn-shadow);
       flex: 0 0 auto;
     }
     .thumbHeaderTitle{
@@ -813,11 +812,11 @@
     }
     .thumbCalendar{
       flex: 0 0 40%;
-      background: var(--surface-1, rgba(0,0,0,.18));
-      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      background: var(--surface-1);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
       padding: 8px;
-      box-shadow: var(--shadow-sm, 0 4px 10px rgba(0,0,0,.25));
+      box-shadow: var(--shadow-sm);
       display:flex;
       flex-direction:column;
       gap: 6px;
@@ -828,51 +827,51 @@
       gap: 4px;
     }
     .thumbDay{
-      background: var(--surface-2, rgba(0,0,0,.16));
-      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      background: var(--surface-2);
+      border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 6px 6px 10px;
       position: relative;
       height: 44px;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      box-shadow: inset 0 0 0 1px var(--border-subtle);
     }
     .thumbDay.selected{
-      border-color: var(--accent, rgba(98,199,255,.75));
-      box-shadow: 0 4px 10px rgba(0,0,0,.15);
+      border-color: var(--accent);
+      box-shadow: var(--shadow-sm);
     }
     .thumbDayDate{
       font-size: 10px;
       font-weight: 700;
-      color: var(--text-strong, #e8ecf3);
+      color: var(--text-strong);
       line-height: 1;
     }
     .thumbDayStamp{
       width: 14px;
       height: 14px;
       border-radius: 999px;
-      background: var(--pink, var(--accent, rgba(98,199,255,.85)));
+      background: var(--pink);
       position: absolute;
       right: 6px;
       bottom: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.2);
-      border: 2px solid var(--card-border, rgba(255,255,255,.18));
+      box-shadow: var(--shadow-sm);
+      border: 2px solid var(--card-border);
     }
     .thumbContent{
       flex: 1 1 auto;
-      background: var(--card, rgba(255,255,255,.04));
-      border: 1px solid var(--card-border, rgba(255,255,255,.08));
+      background: var(--card);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
-      box-shadow: var(--card-shadow, 0 12px 30px rgba(0,0,0,.35));
+      box-shadow: var(--card-shadow);
       padding: 10px;
       display:flex;
       flex-direction:column;
       gap: 8px;
     }
     .thumbDiaryCard{
-      background: var(--surface-2, rgba(255,255,255,.06));
-      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      background: var(--surface-2);
+      border: 1px solid var(--card-border);
       border-radius: 10px;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+      box-shadow: inset 0 0 0 1px var(--border-subtle);
       padding: 8px;
       display:flex;
       flex-direction:column;
@@ -884,16 +883,16 @@
       align-items:center;
       gap: 8px;
       font-size: 10px;
-      color: var(--text-strong, #e8ecf3);
+      color: var(--text-strong);
       font-weight: 700;
     }
     .thumbDiaryStamp{
       width: 14px;
       height: 14px;
       border-radius: 999px;
-      background: var(--pink, var(--accent, rgba(98,199,255,.85)));
-      border: 2px solid var(--card-border, rgba(255,255,255,.18));
-      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+      background: var(--pink);
+      border: 2px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
     }
     .thumbMoodRow{
       display:flex;
@@ -904,7 +903,7 @@
       height: 12px;
       border-radius: 999px;
       background: var(--pink);
-      box-shadow: 0 2px 4px rgba(0,0,0,.12);
+      box-shadow: var(--shadow-sm);
     }
     .thumbMoodDot.orange{ background: var(--orange); }
     .thumbMoodDot.yellow{ background: var(--yellow); }
@@ -912,12 +911,12 @@
     .thumbMoodDot.blue{ background: var(--blue); }
     .thumbField{
       border-radius: 8px;
-      background: var(--input-bg, rgba(0,0,0,.12));
-      border: 1px solid var(--input-border, rgba(255,255,255,.12));
-      box-shadow: var(--input-shadow, 0 4px 10px rgba(0,0,0,.12));
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      box-shadow: var(--input-shadow);
       padding: 6px 8px;
       font-size: 10px;
-      color: var(--text-normal, #d8dde6);
+      color: var(--text-normal);
     }
     .thumbTodoList{
       display:flex;
@@ -933,22 +932,22 @@
       width: 14px;
       height: 14px;
       border-radius: 4px;
-      border: 1px solid var(--card-border, rgba(255,255,255,.2));
-      background: var(--surface-3, rgba(255,255,255,.04));
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+      border: 1px solid var(--card-border);
+      background: var(--surface-3);
+      box-shadow: inset 0 0 0 1px var(--border-subtle);
       position: relative;
       flex: 0 0 auto;
     }
     .thumbTodoCheck.checked{
-      background: var(--accent, rgba(98,199,255,.75));
-      border-color: var(--accent, rgba(98,199,255,.75));
-      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: var(--shadow-sm);
     }
     .thumbTodoCheck.checked::after{
       content: "";
       position: absolute;
       inset: 3px;
-      border: 2px solid var(--surface-1, #0f1115);
+      border: 2px solid var(--text-strong);
       border-top: none;
       border-left: none;
       transform: rotate(45deg);
@@ -956,20 +955,20 @@
     }
     .thumbTodo{
       border-radius: 6px;
-      background: var(--surface-3, rgba(255,255,255,.08));
-      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      background: var(--surface-3);
+      border: 1px solid var(--card-border);
       padding: 5px 8px;
-      color: var(--text-muted, rgba(255,255,255,.7));
+      color: var(--text-muted);
       font-size: 10px;
       flex: 1 1 auto;
       width: 100%;
     }
     .thumbMemo{
       border-radius: 8px;
-      background: var(--surface-3, rgba(255,255,255,.08));
-      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      background: var(--surface-3);
+      border: 1px solid var(--card-border);
       padding: 8px;
-      color: var(--text-muted, rgba(255,255,255,.7));
+      color: var(--text-muted);
       font-size: 10px;
     }
     .themeName{
@@ -996,28 +995,28 @@
     /* stamp theme cards */
     .stampCard{
       border-radius: 12px;
-      border: 1px solid var(--card-border, rgba(255,255,255,.12));
-      background: var(--card, rgba(255,255,255,.06));
+      border: 1px solid var(--card-border);
+      background: var(--card);
       padding: 10px;
       display:flex;
       flex-direction:column;
       gap: 6px;
-      box-shadow: var(--card-shadow, 0 10px 24px rgba(0,0,0,.25));
+      box-shadow: var(--card-shadow);
       cursor:pointer;
       transition: border-color .12s ease, transform .12s ease;
     }
-    .stampCard:hover{ border-color: var(--accent, rgba(98,199,255,.6)); transform: translateY(-1px); }
-    .stampCard.selected{ border-color: var(--accent, rgba(98,199,255,.9)); box-shadow: 0 8px 20px rgba(0,0,0,.28); }
+    .stampCard:hover{ border-color: color-mix(in srgb, var(--accent) 70%, transparent); transform: translateY(-1px); }
+    .stampCard.selected{ border-color: var(--accent); box-shadow: var(--shadow-md); }
     .stampThumb{
       height: 100px;
       border-radius: 10px;
-      background: var(--surface-2, rgba(255,255,255,.08));
-      border: 1px solid var(--card-border, rgba(255,255,255,.12));
+      background: var(--surface-2);
+      border: 1px solid var(--card-border);
       display:flex;
       align-items:center;
       justify-content:center;
       padding: 10px;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+      box-shadow: inset 0 0 0 1px var(--border-subtle);
       position: relative;
     }
     .stampDotsRow{
@@ -1029,13 +1028,13 @@
       width: 26px;
       height: 26px;
       border-radius: 999px;
-      border: 2px solid var(--card-border, rgba(255,255,255,.12));
-      box-shadow: var(--shadow-sm, 0 4px 10px rgba(0,0,0,.18));
+      border: 2px solid var(--card-border);
+      box-shadow: var(--shadow-stamp);
       display:flex;
       align-items:center;
       justify-content:center;
     }
-    .stampPreviewDot .stampImg{ filter: drop-shadow(0 2px 6px rgba(0,0,0,.18)); }
+    .stampPreviewDot .stampImg{ filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--bg) 70%, transparent)); }
 
     .storeActions{
       margin-top: 6px;
@@ -1051,14 +1050,14 @@
       position: absolute;
       inset: 0;
       border-radius: inherit;
-      background: rgba(0,0,0,.45);
-      color: #fff;
+      background: color-mix(in srgb, var(--bg) 70%, transparent);
+      color: var(--text-strong);
       font-weight: 700;
       font-size: 12px;
       display:flex;
       align-items:center;
       justify-content:center;
-      text-shadow: 0 1px 2px rgba(0,0,0,.4);
+      text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 70%, transparent);
       pointer-events: none;
     }
 
@@ -1066,7 +1065,7 @@
     .menuOverlay{
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.35);
+      background: color-mix(in srgb, var(--bg) 65%, transparent);
       backdrop-filter: blur(4px);
       display:none;
       z-index: 50;
@@ -1078,10 +1077,10 @@
       right: 14px;
       top: 74px;
       width: min(340px, calc(100vw - 28px), calc(820px - 28px));
-      background: rgba(23,26,33,.92);
-      border: 1px solid rgba(255,255,255,.12);
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      border: 1px solid var(--border-strong);
       border-radius: 16px;
-      box-shadow: 0 16px 40px rgba(0,0,0,.45);
+      box-shadow: var(--shadow-popover);
       padding: 10px;
       display:none;
       z-index: 60;
@@ -1101,8 +1100,8 @@
       gap: 10px;
       padding: 10px 10px;
       border-radius: 12px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.06);
+      background: var(--surface-3);
+      border: 1px solid var(--border-subtle);
       color: var(--text);
       cursor:pointer;
       font-size: 14px;
@@ -1126,8 +1125,8 @@
     .btn.is-active{
       --btn-bg: var(--accent);
       --btn-border: var(--accent);
-      --btn-fg: #0f1115;
-      box-shadow: 0 4px 12px rgba(0,0,0,.18);
+      --btn-fg: var(--text-strong);
+      box-shadow: var(--shadow-md);
     }
     .btn:active{ transform: translateY(1px); }
     .btn.danger{
@@ -1191,7 +1190,7 @@
       transition: transform .08s ease;
     }
     .diaryStamp:active{ transform: scale(.95); }
-    .diaryStamp.filled{ border-color: rgba(255,255,255,.18); box-shadow: 0 4px 10px rgba(0,0,0,.28); }
+    .diaryStamp.filled{ border-color: var(--ring); box-shadow: var(--shadow-sm); }
     .diaryStamp.pink{ background: var(--pink); }
     .diaryStamp.orange{ background: var(--orange); }
     .diaryStamp.yellow{ background: var(--yellow); }
@@ -1248,7 +1247,7 @@
     .section{
       margin-top: 12px;
       padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,.06);
+      border-top: 1px solid var(--border-subtle);
     }
     .section:first-of-type{
       margin-top: 6px;
@@ -1336,7 +1335,7 @@
       font-size: 16px;
       box-shadow: var(--input-shadow);
     }
-    input.goal:focus{ border-color: rgba(74,157,237,.65); }
+    input.goal:focus{ border-color: color-mix(in srgb, var(--accent) 65%, transparent); }
 
     .todoList{ display:flex; flex-direction:column; gap: 8px; }
     .todoRow{
@@ -1354,9 +1353,9 @@
       appearance: none;
       -webkit-appearance: none;
       border-radius: 6px;
-      border: 1.5px solid rgba(255,255,255,.32);
-      background: rgba(255,255,255,.02);
-      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+      border: 1.5px solid var(--border-strong);
+      background: var(--surface-3);
+      box-shadow: var(--shadow-sm);
       display: inline-block;
       position: relative;
       cursor: pointer;
@@ -1370,7 +1369,7 @@
       top: 2px;
       width: 6px;
       height: 10px;
-      border: solid rgba(255,255,255,.98);
+      border: solid var(--text-strong);
       border-width: 0 2px 2px 0;
       transform: rotate(45deg) scale(0);
       transform-origin: center;
@@ -1378,9 +1377,9 @@
     }
     .todoRow input[type="checkbox"]:checked,
     .switch input[type="checkbox"]:checked{
-      background: linear-gradient(180deg, rgba(64,123,221,.96), rgba(64,123,221,.80));
-      border-color: rgba(64,123,221,.96);
-      box-shadow: 0 4px 10px rgba(0,0,0,.28);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 96%, transparent), color-mix(in srgb, var(--accent) 80%, transparent));
+      border-color: var(--accent);
+      box-shadow: var(--shadow-sm);
     }
     .todoRow input[type="checkbox"]:checked::after,
     .switch input[type="checkbox"]:checked::after{
@@ -1397,7 +1396,7 @@
       font-size: 14px;
       box-shadow: var(--input-shadow);
     }
-    .todoRow input.todoText:focus{ border-color: rgba(74,157,237,.65); }
+    .todoRow input.todoText:focus{ border-color: color-mix(in srgb, var(--accent) 65%, transparent); }
 
     .todoDel{
       position:absolute;
@@ -1407,9 +1406,9 @@
       width: 28px;
       height: 28px;
       border-radius: 10px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--btn-fg);
       display:none;
       cursor:pointer;
     }
@@ -1429,7 +1428,7 @@
       font-size: 14px;
       box-shadow: var(--input-shadow);
     }
-    textarea.memo:focus{ border-color: rgba(74,157,237,.65); }
+    textarea.memo:focus{ border-color: color-mix(in srgb, var(--accent) 65%, transparent); }
 
     .hint{ color: var(--muted); font-size: 12px; margin-top: 10px; line-height: 1.6; }
 
@@ -1437,11 +1436,11 @@
     .moodWidget{
       margin-top: 12px;
       padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,.06);
+      border-top: 1px solid var(--border-subtle);
     }
     .moodTitle{
       font-size: 12px;
-      color: rgba(232,236,243,.92);
+      color: var(--text-muted);
       letter-spacing: .02em;
       margin-bottom: 8px;
       display:flex;
@@ -1459,9 +1458,9 @@
       width: 34px;
       height: 34px;
       border-radius: 999px;
-      border: 2px solid rgba(255,255,255,.22);
+      border: 2px solid var(--ring);
       cursor:pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,.28);
+      box-shadow: var(--shadow-stamp);
       transition: transform .08s ease, opacity .14s ease;
       background: transparent;
     }
@@ -1472,7 +1471,7 @@
     .moodPick.green{ background: var(--green); }
     .moodPick.blue{ background: var(--blue); }
     .moodRow.hasSelection .moodPick{ opacity: .35; }
-    .moodRow.hasSelection .moodPick.isSelected{ opacity: 1; outline: 2px solid rgba(255,255,255,.18); }
+    .moodRow.hasSelection .moodPick.isSelected{ opacity: 1; outline: 2px solid var(--border-subtle); }
 
     /* ===== list ===== */
     .list{
@@ -1497,7 +1496,7 @@
     .listTitle{ font-size: 14px; color: var(--muted); }
 
     .listItem{
-      border-top: 1px solid rgba(255,255,255,.06);
+      border-top: 1px solid var(--border-subtle);
       padding: 10px 0;
     }
     .listItem:first-of-type{ border-top: none; padding-top: 0; }
@@ -1524,7 +1523,7 @@
       background: transparent;
       flex: 0 0 auto;
     }
-    .miniStamp.filled{ border-color: rgba(255,255,255,.18); }
+    .miniStamp.filled{ border-color: var(--ring); }
     .miniStamp.pink{ background: var(--pink); }
     .miniStamp.orange{ background: var(--orange); }
     .miniStamp.yellow{ background: var(--yellow); }
@@ -1538,7 +1537,7 @@
     }
 
     .preview{
-      color: rgba(232,236,243,.85);
+      color: var(--text-normal);
       font-size: 13px;
       line-height: 1.5;
       opacity: .92;
@@ -1550,19 +1549,19 @@
       width: 14px;
       height: 14px;
       border-radius: 4px;
-      border: 1.5px solid rgba(255,255,255,.32);
-      background: rgba(255,255,255,.02);
+      border: 1.5px solid var(--border-strong);
+      background: var(--surface-3);
       margin-right: 6px;
       vertical-align: -2px;
       position: relative;
     }
     .checkIcon.todo{
-      border-color: rgba(255,255,255,.32);
+      border-color: var(--border-strong);
     }
     .checkIcon.done{
-      border-color: rgba(64,123,221,.96);
-      background: linear-gradient(180deg, rgba(64,123,221,.96), rgba(64,123,221,.80));
-      box-shadow: 0 4px 10px rgba(0,0,0,.35);
+      border-color: var(--accent);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 96%, transparent), color-mix(in srgb, var(--accent) 80%, transparent));
+      box-shadow: var(--shadow-sm);
     }
     .checkIcon.done::after{
       content:"";
@@ -1571,7 +1570,7 @@
       top: 1px;
       width: 5px;
       height: 9px;
-      border: solid rgba(255,255,255,.98);
+      border: solid var(--text-strong);
       border-width: 0 2px 2px 0;
       transform: rotate(45deg);
     }
@@ -1603,7 +1602,7 @@
       justify-content:space-between;
       gap: 10px;
       padding: 10px 0;
-      border-top: 1px solid rgba(255,255,255,.06);
+      border-top: 1px solid var(--border-subtle);
     }
     .kvRow:first-of-type{ border-top:none; padding-top:0; }
 
@@ -1615,7 +1614,7 @@
     }
     .kvLabel{
       font-size: 13px;
-      color: rgba(232,236,243,.92);
+      color: var(--text-normal);
     }
     .kvValueBig{
       font-size: 18px;
@@ -1654,7 +1653,7 @@
       justify-content:space-between;
       gap: 10px;
       padding: 6px 0;
-      border-top: 1px solid rgba(255,255,255,.06);
+      border-top: 1px solid var(--border-subtle);
       font-size: 13px;
       color: var(--text-normal);
     }
@@ -1675,13 +1674,13 @@
       align-items:center;
       justify-content:space-between;
       padding: 10px 0;
-      border-top: 1px solid rgba(255,255,255,.06);
+      border-top: 1px solid var(--border-subtle);
     }
     .row:first-of-type{ border-top:none; padding-top:0; }
     .rowLabel{
       min-width: 220px;
       font-size: 13px;
-      color: rgba(232,236,243,.92);
+      color: var(--text-normal);
     }
     .controls{
       display:flex;
@@ -1693,8 +1692,8 @@
     select{
       padding: 10px 10px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
       color: var(--text);
       outline: none;
       font-size: 13px;
@@ -1706,7 +1705,7 @@
 
     .divider{
       margin: 14px 0;
-      border-top: 1px solid rgba(255,255,255,.08);
+      border-top: 1px solid var(--border-subtle);
     }
 
     /* ===== customize panel ===== */
@@ -1737,9 +1736,13 @@
     }
     .blockCard{
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.14);
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
       padding: 10px;
+    }
+    .blockCard.is-touched{
+      border-color: var(--accent);
+      box-shadow: var(--shadow-sm);
     }
     .blockTop{
       display:flex;
@@ -1763,9 +1766,9 @@
     }
     .lockTag{
       font-size: 11px;
-      color: rgba(232,236,243,.85);
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
+      color: var(--text-normal);
+      border: 1px solid var(--pill-border);
+      background: var(--pill-bg);
       padding: 3px 8px;
       border-radius: 999px;
       white-space: nowrap;
@@ -1805,7 +1808,7 @@
       display:flex;
       align-items:center;
       gap: 8px;
-      color: rgba(232,236,243,.92);
+      color: var(--text-normal);
       font-size: 12px;
     }
     .switch input{ width: 18px; height: 18px; }
@@ -1821,8 +1824,8 @@
       flex: 1 1 auto;
       padding: 10px 10px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
       color: var(--text);
       outline:none;
       font-size: 13px;
@@ -1910,7 +1913,7 @@
       padding: 0 !important;
     }
     .imgStamp .stampImg{
-      filter: drop-shadow(0 3px 8px rgba(0,0,0,.35));
+      filter: drop-shadow(0 3px 8px color-mix(in srgb, var(--bg) 70%, transparent));
     }
     .thumbDayStamp,
     .thumbDiaryStamp,
@@ -1949,36 +1952,36 @@
   
     /* ===== light theme overrides ===== */
     :root[data-ui-theme="ui_light_default"] body{
-      background: #f5f6fb;
+      background: var(--bg);
     }
     :root[data-ui-theme="ui_light_default"] header{
-      background: rgba(255,255,255,.9);
-      border-bottom: 1px solid rgba(0,0,0,.08);
-      color: #1d2433;
+      background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-strong);
     }
     :root[data-ui-theme="ui_light_default"] .wrap{
-      color: #1d2433;
+      color: var(--text-strong);
     }
     :root[data-ui-theme="ui_light_default"] .grid,
     :root[data-ui-theme="ui_light_default"] .panel,
     :root[data-ui-theme="ui_light_default"] .list,
     :root[data-ui-theme="ui_light_default"] .data{
-      border: 1px solid rgba(0,0,0,.08);
-      box-shadow: 0 8px 20px rgba(0,0,0,.1);
-      background: #ffffff;
-      color: #1d2433;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--card-shadow);
+      background: var(--card);
+      color: var(--text-strong);
     }
     :root[data-ui-theme="ui_light_default"] .menuSheet,
     :root[data-ui-theme="ui_light_default"] .themePanel{
-      background: rgba(255,255,255,.98);
-      border: 1px solid rgba(0,0,0,.08);
-      box-shadow: 0 12px 26px rgba(0,0,0,.14);
-      color: #1d2433;
+      background: color-mix(in srgb, var(--surface-1) 98%, transparent);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-popover);
+      color: var(--text-strong);
     }
     :root[data-ui-theme="ui_light_default"] .menuItem{
-      background: rgba(0,0,0,.03);
-      border: 1px solid rgba(0,0,0,.06);
-      color: #1d2433;
+      background: var(--surface-3);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-strong);
     }
     :root[data-ui-theme="ui_light_default"] .badge,
     :root[data-ui-theme="ui_light_default"] .muted,
@@ -1988,13 +1991,13 @@
     :root[data-ui-theme="ui_light_default"] .minorNote,
     :root[data-ui-theme="ui_light_default"] .moodTitle,
     :root[data-ui-theme="ui_light_default"] .pickerTitle{
-      color: #63708a;
+      color: var(--text-muted);
     }
     :root[data-ui-theme="ui_light_default"] .listDate,
     :root[data-ui-theme="ui_light_default"] .preview,
     :root[data-ui-theme="ui_light_default"] .goalPreview,
     :root[data-ui-theme="ui_light_default"] .daynum{
-      color: #1d2433;
+      color: var(--text-strong);
     }
     :root[data-ui-theme="ui_light_default"] .navBtn,
     :root[data-ui-theme="ui_light_default"] .hamburger,
@@ -2016,45 +2019,49 @@
       box-shadow: var(--btn-danger-shadow);
     }
     :root[data-ui-theme="ui_light_default"] .hamburger span{
-      background: rgba(58,69,88,.85);
+      background: color-mix(in srgb, var(--text-strong) 85%, transparent);
     }
     :root[data-ui-theme="ui_light_default"] input.goal,
     :root[data-ui-theme="ui_light_default"] .todoRow input.todoText,
     :root[data-ui-theme="ui_light_default"] textarea.memo,
     :root[data-ui-theme="ui_light_default"] select,
     :root[data-ui-theme="ui_light_default"] input[type="file"]{
-      background: #ffffff;
-      border: 1px solid rgba(0,0,0,.08);
-      color: #1d2433;
-      box-shadow: 0 4px 10px rgba(0,0,0,.08);
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-strong);
+      box-shadow: var(--input-shadow);
     }
     :root[data-ui-theme="ui_light_default"] input.goal:focus,
     :root[data-ui-theme="ui_light_default"] .todoRow input.todoText:focus,
     :root[data-ui-theme="ui_light_default"] textarea.memo:focus{
-      border-color: rgba(74,157,237,.65);
-      box-shadow: 0 6px 12px rgba(0,0,0,.10);
+      border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+      box-shadow: var(--shadow-sm);
     }
     :root[data-ui-theme="ui_light_default"] .picker{
-      background: rgba(255,255,255,.98);
-      border: 1px solid rgba(0,0,0,.08);
-      color: #1d2433;
-      box-shadow: 0 16px 30px rgba(0,0,0,.12);
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      color: var(--text-strong);
+      box-shadow: var(--shadow-popover);
     }
     :root[data-ui-theme="ui_light_default"] .caret{
-      background: rgba(255,255,255,.98);
-      border-left: 1px solid rgba(0,0,0,.08);
-      border-top: 1px solid rgba(0,0,0,.08);
-      box-shadow: 0 16px 30px rgba(0,0,0,.12);
+      background: var(--card);
+      border-left: 1px solid var(--card-border);
+      border-top: 1px solid var(--card-border);
+      box-shadow: var(--shadow-popover);
     }
     :root[data-ui-theme="ui_light_default"] .panel,
     :root[data-ui-theme="ui_light_default"] .list,
     :root[data-ui-theme="ui_light_default"] .data{
-      background: #ffffff;
+      background: var(--card);
     }
     :root[data-ui-theme="ui_light_default"] .blockCard{
-      background: #ffffff;
-      border: 1px solid rgba(0,0,0,.08);
-      box-shadow: 0 4px 10px rgba(0,0,0,.08);
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+    }
+    :root[data-ui-theme="ui_light_default"] .blockCard.is-touched{
+      border-color: var(--accent);
+      box-shadow: var(--shadow-sm);
     }
     :root[data-ui-theme="ui_light_default"] .blockTop,
     :root[data-ui-theme="ui_light_default"] .blockBottom,
@@ -2063,22 +2070,22 @@
     :root[data-ui-theme="ui_light_default"] .majorTitle,
     :root[data-ui-theme="ui_light_default"] .kvLabel,
     :root[data-ui-theme="ui_light_default"] .rowLabel{
-      color: #3a4558;
+      color: var(--text-normal);
     }
     :root[data-ui-theme="ui_light_default"] .renameRow input{
-      border: 1px solid rgba(0,0,0,.08);
-      box-shadow: 0 4px 10px rgba(0,0,0,.08);
-      background: #ffffff;
+      border: 1px solid var(--input-border);
+      box-shadow: var(--input-shadow);
+      background: var(--input-bg);
     }
     :root[data-ui-theme="ui_light_default"] .switch input[type="checkbox"]{
-      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+      box-shadow: var(--shadow-sm);
     }
     :root[data-ui-theme="ui_light_default"] .lockTag,
     :root[data-ui-theme="ui_light_default"] .chip{
-      color: rgba(58,69,88,.85);
-      border: 1px solid rgba(58,69,88,.15);
-      background: rgba(58,69,88,.06);
+      color: var(--pill-fg);
+      border: 1px solid var(--pill-border);
+      background: var(--pill-bg);
     }
     :root[data-ui-theme="ui_light_default"] .themePanel{
-      color: #1d2433;
+      color: var(--text-strong);
     }

@@ -640,6 +640,8 @@
 
   // customize draft (cancelできるように)
   let customizeDraft = null;
+  let customizeDirty = false;
+  let customizeTouched = new Set();
 
   function ensureDiaryLayout(){
     settings.diaryLayout = sanitizeLayout(settings.diaryLayout || defaultDiaryLayout());
@@ -2088,6 +2090,8 @@
     if (!selectedDate) return;
     closeLogDetail();
     customizeDraft = JSON.parse(JSON.stringify(ensureDiaryLayout()));
+    customizeTouched = new Set();
+    setCustomizeDirty(false);
     renderCustomizeList();
     slider.classList.add("customize");
   }
@@ -2102,7 +2106,25 @@
       renderDiaryBlocks();
     }
     customizeDraft = null;
+    customizeTouched = new Set();
+    setCustomizeDirty(false);
     slider.classList.remove("customize");
+  }
+
+  function setCustomizeDirty(isDirty){
+    customizeDirty = !!isDirty;
+    if (saveCustomizeBtn){
+      saveCustomizeBtn.classList.toggle("is-active", customizeDirty);
+    }
+  }
+
+  function markCustomizeTouched(instanceId){
+    if (instanceId) customizeTouched.add(instanceId);
+  }
+
+  function markCustomizeDirty(instanceId){
+    markCustomizeTouched(instanceId);
+    setCustomizeDirty(true);
   }
 
   function openLogDetail(){
@@ -2161,7 +2183,7 @@
       const tpl = BLOCK_TEMPLATES[blk.type];
 
       const card = document.createElement("div");
-      card.className = "blockCard";
+      card.className = "blockCard" + (customizeTouched.has(blk.instanceId) ? " is-touched" : "");
 
       const top = document.createElement("div");
       top.className = "blockTop";
@@ -2255,6 +2277,10 @@
       card.appendChild(renameRow);
 
       // events
+      card.addEventListener("pointerdown", () => {
+        markCustomizeTouched(blk.instanceId);
+        card.classList.add("is-touched");
+      });
       renameBtn.addEventListener("click", () => {
         renameRow.classList.toggle("show");
         if (renameRow.classList.contains("show")) renameInput.focus();
@@ -2264,7 +2290,11 @@
         blk.name = (renameInput.value || "").trim() || (tpl?.defaultName || blk.type);
         // mood name lock
         if (blk.type === "mood") blk.name = BLOCK_TEMPLATES.mood.defaultName;
+        markCustomizeDirty(blk.instanceId);
         renderCustomizeList();
+      });
+      renameInput.addEventListener("input", () => {
+        markCustomizeDirty(blk.instanceId);
       });
 
       upBtn.addEventListener("click", () => {
@@ -2272,6 +2302,7 @@
         const tmp = customizeDraft[i-1];
         customizeDraft[i-1] = customizeDraft[i];
         customizeDraft[i] = tmp;
+        markCustomizeDirty(blk.instanceId);
         renderCustomizeList();
       });
 
@@ -2280,11 +2311,13 @@
         const tmp = customizeDraft[i+1];
         customizeDraft[i+1] = customizeDraft[i];
         customizeDraft[i] = tmp;
+        markCustomizeDirty(blk.instanceId);
         renderCustomizeList();
       });
 
       cb.addEventListener("change", () => {
         blk.visible = cb.checked;
+        markCustomizeDirty(blk.instanceId);
       });
 
       blockListEl.appendChild(card);
