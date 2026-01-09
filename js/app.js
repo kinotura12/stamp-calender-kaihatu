@@ -384,8 +384,10 @@
     if (!moodId) return null;
     const id = (typeof raw.id === "string") ? raw.id : null;
     const createdAt = (typeof raw.createdAt === "string") ? raw.createdAt : null;
-    const memo = (raw.memo && typeof raw.memo === "object") ? raw.memo : null;
-    return { id, moodId, createdAt, memo };
+    const moodMemo = (raw.moodMemo && typeof raw.moodMemo === "object")
+      ? raw.moodMemo
+      : (typeof raw.moodMemo === "string" ? { text: raw.moodMemo } : null);
+    return { id, moodId, createdAt, moodMemo };
   }
   function normalizeStampEventsForRead(list){
     if (!Array.isArray(list)) return [];
@@ -432,7 +434,13 @@
   const fabStampBtn = document.getElementById("fabStamp");
   const fabBubble = document.getElementById("fabBubble");
   const fabBubbleRow = document.getElementById("fabBubbleRow");
+  const fabMemoBubble = document.getElementById("fabMemoBubble");
+  const fabMemoCloseBtn = document.getElementById("fabMemoClose");
+  const fabMemoInput = document.getElementById("fabMemoInput");
+  const fabMemoSaveBtn = document.getElementById("fabMemoSave");
   let fabBubbleHideTimer = null;
+  let fabMemoAttentionTimer = null;
+  let fabMemoEventId = null;
 
   const diaryWrap = document.getElementById("diaryWrap");
   const slider = document.getElementById("slider");
@@ -704,8 +712,10 @@
         const today = new Date();
         const day = Math.min(daysInMonthOf(currentMonth), today.getDate());
         const key = ymd(currentMonth, day);
-        applyStamp(key, mood);
+        const ev = appendStampEvent(key, mood);
+        applyStamp(key, mood, { skipEvent: true });
         hideFabBubble();
+        showFabMemoBubble(ev?.id || null);
       });
       fabBubbleRow.appendChild(b);
     }
@@ -721,6 +731,49 @@
     fabBubble.style.top = `${Math.max(8, top)}px`;
     const caretLeft = r.left + r.width/2 - left;
     fabBubble.style.setProperty("--fab-bubble-caret-x", `${caretLeft}px`);
+  }
+  function updateFabMemoPosition(){
+    if (!fabMemoBubble || !fabStampBtn) return;
+    const r = fabStampBtn.getBoundingClientRect();
+    const pr = fabMemoBubble.getBoundingClientRect();
+    let left = r.left + r.width/2 - pr.width/2;
+    left = Math.max(8, Math.min(left, window.innerWidth - pr.width - 8));
+    const top = r.top - pr.height - 12;
+    fabMemoBubble.style.left = `${left}px`;
+    fabMemoBubble.style.top = `${Math.max(8, top)}px`;
+    const caretLeft = r.left + r.width/2 - left;
+    fabMemoBubble.style.setProperty("--fab-memo-caret-x", `${caretLeft}px`);
+  }
+  function updateFabMemoSaveState(){
+    if (!fabMemoSaveBtn || !fabMemoInput) return;
+    const hasText = !!(fabMemoInput.value && fabMemoInput.value.trim());
+    fabMemoSaveBtn.classList.toggle("is-active", hasText);
+  }
+  function showFabMemoBubble(eventId){
+    if (!fabMemoBubble) return;
+    fabMemoEventId = eventId;
+    if (fabMemoInput) fabMemoInput.value = "";
+    updateFabMemoSaveState();
+    fabMemoBubble.classList.add("show");
+    fabMemoBubble.setAttribute("aria-hidden", "false");
+    updateFabMemoPosition();
+  }
+  function hideFabMemoBubble(){
+    if (!fabMemoBubble) return;
+    fabMemoBubble.classList.remove("show");
+    fabMemoBubble.setAttribute("aria-hidden", "true");
+    fabMemoEventId = null;
+  }
+  function triggerFabMemoAttention(){
+    if (!fabMemoBubble) return;
+    fabMemoBubble.classList.remove("is-attention");
+    void fabMemoBubble.offsetWidth;
+    fabMemoBubble.classList.add("is-attention");
+    if (fabMemoAttentionTimer) window.clearTimeout(fabMemoAttentionTimer);
+    fabMemoAttentionTimer = window.setTimeout(() => {
+      fabMemoBubble.classList.remove("is-attention");
+      fabMemoAttentionTimer = null;
+    }, 180);
   }
   function showFabBubble(){
     if (!fabBubble) return;
@@ -749,6 +802,27 @@
       }, 300);
     }, 60);
   }
+  function appendStampEvent(dateKey, moodId){
+    ensureDay(dateKey);
+    if (!Array.isArray(state[dateKey].stampEvents)) state[dateKey].stampEvents = [];
+    const ev = { id: uid(), moodId, createdAt: new Date().toISOString(), moodMemo: null };
+    state[dateKey].stampEvents.push(ev);
+    return ev;
+  }
+  function applyMemoToEvent(eventId, memoText){
+    if (!eventId || !memoText) return;
+    const text = memoText.trim();
+    if (!text) return;
+    for (const day of Object.values(state)){
+      const list = Array.isArray(day?.stampEvents) ? day.stampEvents : [];
+      const found = list.find(ev => ev && ev.id === eventId);
+      if (found){
+        found.moodMemo = { text };
+        persist();
+        return;
+      }
+    }
+  }
   function toggleFabBubble(){
     if (!fabBubble) return;
     if (fabBubble.classList.contains("show")) hideFabBubble();
@@ -763,6 +837,9 @@
       updateFabPosition();
       if (fabBubble && fabBubble.classList.contains("show")){
         updateFabBubblePosition();
+      }
+      if (fabMemoBubble && fabMemoBubble.classList.contains("show")){
+        updateFabMemoPosition();
       }
     });
   }
@@ -1092,15 +1169,46 @@
     fabStampBtn.addEventListener("click", () => {
       if (viewMode !== "calendar") return;
       hidePicker();
+      hideFabMemoBubble();
       toggleFabBubble();
     });
   }
   document.addEventListener("pointerdown", (e) => {
-    if (!fabBubble || !fabBubble.classList.contains("show")) return;
     const inBubble = e.target.closest("#fabBubble");
     const inFab = e.target.closest("#fabStamp");
-    if (!inBubble && !inFab) hideFabBubble();
+    const inMemo = e.target.closest("#fabMemoBubble");
+    if (fabBubble && fabBubble.classList.contains("show")){
+      if (!inBubble && !inFab && !inMemo) hideFabBubble();
+    }
+    if (fabMemoBubble && fabMemoBubble.classList.contains("show")){
+      const memoFocused = (fabMemoInput && document.activeElement === fabMemoInput);
+      const memoHasText = !!(fabMemoInput && fabMemoInput.value && fabMemoInput.value.trim());
+      if (!inMemo && !inFab && !inBubble){
+        if (memoHasText){
+          triggerFabMemoAttention();
+        } else if (!memoFocused){
+          hideFabMemoBubble();
+        }
+      }
+    }
   });
+  if (fabMemoCloseBtn){
+    fabMemoCloseBtn.addEventListener("click", () => {
+      hideFabMemoBubble();
+    });
+  }
+  if (fabMemoSaveBtn){
+    fabMemoSaveBtn.addEventListener("click", () => {
+      applyMemoToEvent(fabMemoEventId, fabMemoInput?.value || "");
+      hideFabMemoBubble();
+      renderDiaryBlocks();
+    });
+  }
+  if (fabMemoInput){
+    fabMemoInput.addEventListener("input", updateFabMemoSaveState);
+    fabMemoInput.addEventListener("change", updateFabMemoSaveState);
+    fabMemoInput.addEventListener("compositionend", updateFabMemoSaveState);
+  }
 
   function goalPreviewText(goal){
     const s = (goal || "").trim();
@@ -1374,11 +1482,11 @@
     applyFallback();
   }
 
-  function applyStamp(dateKey, stampIdOrNull){
+  function applyStamp(dateKey, stampIdOrNull, options = {}){
     ensureDay(dateKey);
     const moodId = normalizeStampId(stampIdOrNull);
     state[dateKey].stampId = moodId;
-    if (moodId){
+    if (moodId && !options.skipEvent){
       if (!Array.isArray(state[dateKey].stampEvents)) state[dateKey].stampEvents = [];
       state[dateKey].stampEvents.push({ id: uid(), moodId, createdAt: new Date().toISOString() });
     }
@@ -1696,6 +1804,12 @@
 
       row.appendChild(time);
       row.appendChild(mood);
+      if (ev?.moodMemo && typeof ev.moodMemo.text === "string" && ev.moodMemo.text.trim()){
+        const memo = document.createElement("div");
+        memo.className = "diaryLogMemo";
+        memo.textContent = ev.moodMemo.text.trim();
+        row.appendChild(memo);
+      }
       container.appendChild(row);
     }
   }
@@ -2225,7 +2339,7 @@
     renderThemeGrid();
     themeOverlay.classList.add("show");
     themePanel.classList.add("show");
-    applyThemeBtn.classList.remove("themeApplyActive");
+    applyThemeBtn.classList.remove("is-active");
   }
   function hideThemePicker(){
     themeOverlay.classList.remove("show");
@@ -2366,7 +2480,7 @@
 
       card.addEventListener("click", () => {
         selectedUiThemeId = t.id;
-        applyThemeBtn.classList.toggle("themeApplyActive", !!(selectedUiThemeId || selectedStampThemeId));
+        applyThemeBtn.classList.toggle("is-active", !!(selectedUiThemeId || selectedStampThemeId));
         renderThemeGrid();
       });
 
@@ -2407,14 +2521,14 @@
 
       card.addEventListener("click", () => {
         selectedStampThemeId = t.id;
-        applyThemeBtn.classList.toggle("themeApplyActive", !!(selectedUiThemeId || selectedStampThemeId));
+        applyThemeBtn.classList.toggle("is-active", !!(selectedUiThemeId || selectedStampThemeId));
         renderThemeGrid();
       });
 
       themeGrid.appendChild(card);
     }
 
-    applyThemeBtn.classList.toggle("themeApplyActive", !!(selectedUiThemeId || selectedStampThemeId));
+    applyThemeBtn.classList.toggle("is-active", !!(selectedUiThemeId || selectedStampThemeId));
   }
 
   openThemePickerBtn.addEventListener("click", () => {

@@ -51,6 +51,18 @@
     <div class="fabBubbleTitle">いまの気分は？</div>
     <div class="fabBubbleRow" id="fabBubbleRow"></div>
   </div>
+  <div class="fabMemoBubble" id="fabMemoBubble" aria-hidden="true">
+    <div class="fabMemoHead">
+      <div class="fabMemoTitle">いまの気分メモ</div>
+      <button class="fabMemoClose" id="fabMemoClose" type="button" aria-label="閉じる">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <textarea class="fabMemoInput" id="fabMemoInput" rows="3" placeholder="メモ（任意）"></textarea>
+    <button class="btn fabMemoSave" id="fabMemoSave" type="button">保存</button>
+  </div>
 
   <!-- 日記 + カスタマイズ（スライド） -->
   <div class="diaryWrap" id="diaryWrap" style="display:none;">
