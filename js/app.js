@@ -1979,7 +1979,7 @@
     section.appendChild(body);
 
     const events = sortEventsByTime(getStampEventsForDate(selectedDate));
-    const rows = events.slice(0, 7);
+    const rows = events.slice(-7);
     count.textContent = `${rows.length}/${events.length}件`;
     renderLogRows(body, rows);
 
