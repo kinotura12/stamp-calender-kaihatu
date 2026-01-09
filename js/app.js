@@ -1371,6 +1371,7 @@
       }
       tracking = false;
       pointerId = null;
+      targetEl.style.touchAction = "";
     };
 
     targetEl.addEventListener("pointerdown", (e) => {
@@ -1386,6 +1387,7 @@
       const dy = e.clientY - startY;
       if (!isHorizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2){
         isHorizontal = true;
+        targetEl.style.touchAction = "none";
       }
       if (isHorizontal){
         maybePrevent(dx, dy, e);
@@ -1417,6 +1419,7 @@
       const dy = t.clientY - startY;
       if (!isHorizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2){
         isHorizontal = true;
+        targetEl.style.touchAction = "none";
       }
       if (isHorizontal){
         maybePrevent(dx, dy, e);
