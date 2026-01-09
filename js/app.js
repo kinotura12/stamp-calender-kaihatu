@@ -429,6 +429,10 @@
   const dowRow = document.getElementById("dowRow");
   const calendarPanel = document.getElementById("calendarPanel");
   const daysEl = document.getElementById("days");
+  const fabStampBtn = document.getElementById("fabStamp");
+  const fabBubble = document.getElementById("fabBubble");
+  const fabBubbleRow = document.getElementById("fabBubbleRow");
+  let fabBubbleHideTimer = null;
 
   const diaryWrap = document.getElementById("diaryWrap");
   const slider = document.getElementById("slider");
@@ -564,6 +568,7 @@
   let viewMode = "calendar"; // calendar | list | data
   let breakdownOpen = false;
   const DERIVED_SCOPE_ORDER = { calendar: 1, stats: 2 };
+  const PRESS_MIN_MS = 120;
 
   // settings (theme + diary layout)
   function getDefaultOwnedThemeIds(){
@@ -633,6 +638,135 @@
     return settings.diaryLayout;
   }
 
+  function resolveFabColorValue(entry){
+    const paletteMap = {
+      pink: "var(--pink)",
+      orange: "var(--orange)",
+      yellow: "var(--yellow)",
+      green: "var(--green)",
+      blue: "var(--blue)"
+    };
+    if (entry && entry.color) return entry.color;
+    if (entry && entry.className && paletteMap[entry.className]) return paletteMap[entry.className];
+
+    const fallbackTheme = resolveStampTheme(DEFAULT_STAMP_THEME_ID);
+    const fallbackEntry = getStampDef(fallbackTheme, STAMP_MOODS[0]);
+    if (fallbackEntry && fallbackEntry.color) return fallbackEntry.color;
+    if (fallbackEntry && fallbackEntry.className && paletteMap[fallbackEntry.className]){
+      return paletteMap[fallbackEntry.className];
+    }
+    return "var(--pink)";
+  }
+  function applyFabColorFromStampTheme(){
+    if (!fabStampBtn) return;
+    const entry = getStampDef(resolvedStampTheme, STAMP_MOODS[0]);
+    const value = resolveFabColorValue(entry);
+    document.documentElement.style.setProperty("--fab-color", value);
+  }
+  function updateFabPosition(){
+    if (!fabStampBtn || !calendarPanel) return;
+    const rect = calendarPanel.getBoundingClientRect();
+    const fabWidth = fabStampBtn.offsetWidth || 54;
+    const gapValue = getComputedStyle(document.documentElement).getPropertyValue("--fab-inset").trim();
+    const gap = Number.parseFloat(gapValue || "0") || 0;
+    const left = rect.right - fabWidth - gap;
+    fabStampBtn.style.left = `${Math.max(8, left)}px`;
+  }
+  function renderFabBubble(){
+    if (!fabBubbleRow) return;
+    fabBubbleRow.innerHTML = "";
+    const map = buildStampIndex(resolvedStampTheme);
+    for (const mood of STAMP_MOODS){
+      const entry = map.get(mood) || null;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.dataset.stamp = mood;
+      b.setAttribute("aria-label", entry?.label || mood);
+      renderStamp(b, entry, { baseClass: "fabPick", basePath: resolvedStampTheme.basePath });
+      let pickPressStartAt = 0;
+      const releasePick = () => {
+        const elapsed = Date.now() - pickPressStartAt;
+        const delay = Math.max(0, PRESS_MIN_MS - elapsed);
+        window.setTimeout(() => {
+          b.classList.remove("is-pressing");
+          if (fabBubble) fabBubble.classList.remove("is-pressing");
+        }, delay);
+      };
+      b.addEventListener("pointerdown", () => {
+        pickPressStartAt = Date.now();
+        b.classList.add("is-pressing");
+        if (fabBubble) fabBubble.classList.add("is-pressing");
+      });
+      b.addEventListener("pointerup", releasePick);
+      b.addEventListener("pointercancel", releasePick);
+      b.addEventListener("pointerleave", releasePick);
+      b.addEventListener("click", () => {
+        const today = new Date();
+        const day = Math.min(daysInMonthOf(currentMonth), today.getDate());
+        const key = ymd(currentMonth, day);
+        applyStamp(key, mood);
+        hideFabBubble();
+      });
+      fabBubbleRow.appendChild(b);
+    }
+  }
+  function updateFabBubblePosition(){
+    if (!fabBubble || !fabStampBtn) return;
+    const r = fabStampBtn.getBoundingClientRect();
+    const pr = fabBubble.getBoundingClientRect();
+    let left = r.left + r.width/2 - pr.width/2;
+    left = Math.max(8, Math.min(left, window.innerWidth - pr.width - 8));
+    const top = r.top - pr.height - 12;
+    fabBubble.style.left = `${left}px`;
+    fabBubble.style.top = `${Math.max(8, top)}px`;
+    const caretLeft = r.left + r.width/2 - left;
+    fabBubble.style.setProperty("--fab-bubble-caret-x", `${caretLeft}px`);
+  }
+  function showFabBubble(){
+    if (!fabBubble) return;
+    if (fabBubbleHideTimer){
+      window.clearTimeout(fabBubbleHideTimer);
+      fabBubbleHideTimer = null;
+    }
+    renderFabBubble();
+    fabBubble.classList.add("show");
+    fabBubble.classList.remove("is-hiding");
+    fabBubble.setAttribute("aria-hidden", "false");
+    updateFabBubblePosition();
+  }
+  function hideFabBubble(){
+    if (!fabBubble) return;
+    if (!fabBubble.classList.contains("show")) return;
+    fabBubble.classList.remove("is-hiding");
+    fabBubble.setAttribute("aria-hidden", "true");
+    if (fabBubbleHideTimer) window.clearTimeout(fabBubbleHideTimer);
+    fabBubbleHideTimer = window.setTimeout(() => {
+      fabBubble.classList.add("is-hiding");
+      fabBubbleHideTimer = window.setTimeout(() => {
+        fabBubble.classList.remove("show");
+        fabBubble.classList.remove("is-hiding");
+        fabBubbleHideTimer = null;
+      }, 300);
+    }, 60);
+  }
+  function toggleFabBubble(){
+    if (!fabBubble) return;
+    if (fabBubble.classList.contains("show")) hideFabBubble();
+    else showFabBubble();
+  }
+  let fabPosQueued = false;
+  function scheduleFabPositionUpdate(){
+    if (fabPosQueued) return;
+    fabPosQueued = true;
+    window.requestAnimationFrame(() => {
+      fabPosQueued = false;
+      updateFabPosition();
+      if (fabBubble && fabBubble.classList.contains("show")){
+        updateFabBubblePosition();
+      }
+    });
+  }
+
   function getStampThemeIdForMonth(yyyyMm){
     const byMonth = settings.themeByMonth || {};
     if (byMonth && typeof byMonth[yyyyMm] === "string") return byMonth[yyyyMm];
@@ -644,6 +778,8 @@
     settings.stampThemeId = id;
     resolvedStampTheme = { id, byMood, basePath };
     renderStampPickerButtons();
+    applyFabColorFromStampTheme();
+    if (fabBubble && fabBubble.classList.contains("show")) renderFabBubble();
   }
 
   function applyThemeTokens(themeId, targetEl = document.documentElement, options = {}){
@@ -709,6 +845,8 @@
     settings.stampThemeId = theme.id || DEFAULT_STAMP_THEME_ID;
     resolvedStampTheme = { id: settings.stampThemeId, byMood, basePath: theme.assets?.basePath || "" };
     renderStampPickerButtons();
+    applyFabColorFromStampTheme();
+    if (fabBubble && fabBubble.classList.contains("show")) renderFabBubble();
   }
 
   function buildThemeKey(){
@@ -934,6 +1072,35 @@
     });
   }
   window.addEventListener("resize", scheduleResizeRender);
+  window.addEventListener("resize", scheduleFabPositionUpdate);
+  if (fabStampBtn){
+    let pressStartAt = 0;
+    const release = () => {
+      const elapsed = Date.now() - pressStartAt;
+      const delay = Math.max(0, PRESS_MIN_MS - elapsed);
+      window.setTimeout(() => {
+        fabStampBtn.classList.remove("is-pressing");
+      }, delay);
+    };
+    fabStampBtn.addEventListener("pointerdown", () => {
+      pressStartAt = Date.now();
+      fabStampBtn.classList.add("is-pressing");
+    });
+    fabStampBtn.addEventListener("pointerup", release);
+    fabStampBtn.addEventListener("pointercancel", release);
+    fabStampBtn.addEventListener("pointerleave", release);
+    fabStampBtn.addEventListener("click", () => {
+      if (viewMode !== "calendar") return;
+      hidePicker();
+      toggleFabBubble();
+    });
+  }
+  document.addEventListener("pointerdown", (e) => {
+    if (!fabBubble || !fabBubble.classList.contains("show")) return;
+    const inBubble = e.target.closest("#fabBubble");
+    const inFab = e.target.closest("#fabStamp");
+    if (!inBubble && !inFab) hideFabBubble();
+  });
 
   function goalPreviewText(goal){
     const s = (goal || "").trim();
@@ -1312,6 +1479,12 @@
 
         dot.addEventListener("click", (e) => {
           e.stopPropagation();
+          const events = getStampEventsForDate(key);
+          if (events.length){
+            hidePicker();
+            openDiary(key);
+            return;
+          }
           if (pickerEl.classList.contains("show") && pickerDate === key && pickerSource === "calendar"){
             hidePicker();
           } else {
@@ -1366,6 +1539,7 @@
     }
     const derived = rebuildDerivedIfNeeded("calendar");
     paintCalendar(derived);
+    scheduleFabPositionUpdate();
   }
 
   // diary open

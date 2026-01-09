@@ -315,6 +315,123 @@
       margin-top: 8px;
       box-shadow: var(--card-shadow);
     }
+    :root{
+      --fab-inset: 48px;
+    }
+    .fab{
+      position: fixed;
+      left: 0;
+      bottom: var(--fab-inset);
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      border: 2px solid var(--ring);
+      background: var(--fab-color, var(--pink));
+      color: color-mix(in srgb, var(--surface-2) 80%, transparent);
+      box-shadow: var(--shadow-md);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor: pointer;
+      --fab-ty: 0px;
+      --fab-scale: 1;
+      transform: translateX(0) translateY(var(--fab-ty)) scale(var(--fab-scale));
+      transition: transform .2s ease;
+      z-index: 40;
+    }
+    .fab.is-pressing{
+      --fab-ty: 4px;
+      --fab-scale: 1.04;
+    }
+    .fabIcon{
+      font-size: 26px;
+      line-height: 1;
+      font-weight: 600;
+    }
+    .fabBubble{
+      position: fixed;
+      z-index: 45;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px 12px;
+      border-radius: 14px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-md);
+      min-width: 220px;
+      --bubble-ty: 0px;
+      --bubble-scale: 1;
+      transform: translateY(var(--bubble-ty)) scale(var(--bubble-scale));
+      transition: transform .2s ease, opacity .3s ease;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .fabBubble.show{
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    .fabBubble.is-hiding{
+      opacity: 0;
+      pointer-events: none;
+    }
+    .fabBubble.is-pressing{
+      --bubble-ty: 3px;
+      --bubble-scale: 1;
+    }
+    .fabBubble::after{
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      left: var(--fab-bubble-caret-x, 50%);
+      bottom: -6px;
+      margin-left: -6px;
+      background: var(--card);
+      border-left: 1px solid var(--card-border);
+      border-top: 1px solid var(--card-border);
+      transform: rotate(45deg);
+    }
+    .fabBubbleTitle{
+      font-size: 12px;
+      color: var(--text-normal);
+      text-align: center;
+      letter-spacing: .02em;
+    }
+    .fabBubbleRow{
+      display:flex;
+      gap: 10px;
+      justify-content: space-between;
+    }
+    .fabPick{
+      width: var(--stamp-l);
+      height: var(--stamp-l);
+      border-radius: 999px;
+      border: 2px solid var(--ring);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      --pick-ty: 0px;
+      --pick-scale: 1;
+      transform: translateY(var(--pick-ty)) scale(var(--pick-scale));
+      transition: transform .2s ease, opacity .12s ease;
+    }
+    .fabPick.is-pressing{
+      --pick-ty: 3px;
+      --pick-scale: 1.04;
+    }
+
+    @media (hover: hover) and (pointer: fine){
+      .fab:hover{ --fab-scale: 1.06; }
+      .fabPick:hover{ --pick-scale: 1.1; }
+    }
+    @media (max-width: 640px){
+      :root{ --fab-inset: 36px; }
+    }
+    @media (prefers-reduced-motion: reduce){
+      .fab{ transition: none; }
+    }
 
     .days{
       display:grid;
