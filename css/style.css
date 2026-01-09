@@ -318,6 +318,10 @@
       margin-top: 8px;
       box-shadow: var(--card-shadow);
     }
+    #calendarPanel,
+    #list{
+      touch-action: pan-y;
+    }
     :root{
       --fab-inset: 48px;
     }

@@ -1315,6 +1315,57 @@
   prevMonthBtn.addEventListener("click", () => changeMonth(currentMonth - 1));
   nextMonthBtn.addEventListener("click", () => changeMonth(currentMonth + 1));
 
+  function attachMonthSwipe(targetEl){
+    if (!targetEl) return;
+    let tracking = false;
+    let pointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+
+    targetEl.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "touch") return;
+      if (e.target.closest("input, textarea, select, button")) return;
+      tracking = true;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      startTime = Date.now();
+      targetEl.setPointerCapture?.(pointerId);
+    });
+
+    targetEl.addEventListener("pointermove", (e) => {
+      if (!tracking || e.pointerId !== pointerId) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2){
+        e.preventDefault();
+      }
+    });
+
+    function finishSwipe(e){
+      if (!tracking || e.pointerId !== pointerId) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      const elapsed = Date.now() - startTime;
+      const minDistance = 45;
+      const maxTime = 900;
+      if (absX > minDistance && absX > absY * 1.2 && elapsed < maxTime){
+        changeMonth(dx < 0 ? currentMonth + 1 : currentMonth - 1);
+      }
+      tracking = false;
+      pointerId = null;
+    }
+
+    targetEl.addEventListener("pointerup", finishSwipe);
+    targetEl.addEventListener("pointercancel", finishSwipe);
+  }
+
+  attachMonthSwipe(calendarPanel);
+  attachMonthSwipe(listEl);
+
   // menu
   function closeMenu(){
     menuOverlay.classList.remove("show");
