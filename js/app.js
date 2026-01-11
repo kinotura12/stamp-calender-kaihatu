@@ -590,15 +590,38 @@
     return Array.from(out);
   }
 
+  function normalizeThemeByMonthOnce(raw){
+    if (!raw || typeof raw !== "object") return { themeByMonth: {}, migrated: false };
+    const out = {};
+    let migrated = false;
+    for (const [key, value] of Object.entries(raw)){
+      if (typeof value === "string"){
+        out[key] = { stamp: value };
+        migrated = true;
+        continue;
+      }
+      if (value && typeof value === "object"){
+        out[key] = {
+          stamp: (typeof value.stamp === "string") ? value.stamp : undefined,
+          ui: (typeof value.ui === "string") ? value.ui : undefined
+        };
+      }
+    }
+    return { themeByMonth: out, migrated };
+  }
+
   function loadSettings(){
     try {
       const s = window.storageApi.loadSettings();
       const stampThemeId = (typeof s.stampThemeId === "string") ? s.stampThemeId : DEFAULT_STAMP_THEME_ID;
       const uiThemeId = (typeof s.uiThemeId === "string") ? s.uiThemeId : DEFAULT_UI_THEME_ID;
       const ownedThemeIds = normalizeOwnedThemeIds(s.ownedThemeIds);
-      const themeByMonth = (s && typeof s.themeByMonth === "object" && s.themeByMonth !== null) ? s.themeByMonth : {};
+      const normalized = normalizeThemeByMonthOnce(s && typeof s.themeByMonth === "object" && s.themeByMonth !== null ? s.themeByMonth : {});
+      const themeByMonth = normalized.themeByMonth;
       const diaryLayout = sanitizeLayout(Array.isArray(s.diaryLayout) ? s.diaryLayout : defaultDiaryLayout());
-      return { stampThemeId, uiThemeId, ownedThemeIds, themeByMonth, diaryLayout, schemaVersion: APP_SCHEMA_VERSION };
+      const settingsObj = { stampThemeId, uiThemeId, ownedThemeIds, themeByMonth, diaryLayout, schemaVersion: APP_SCHEMA_VERSION };
+      if (normalized.migrated) saveSettings(settingsObj);
+      return settingsObj;
     } catch {
       return {
         stampThemeId: DEFAULT_STAMP_THEME_ID,
@@ -834,8 +857,16 @@
 
   function getStampThemeIdForMonth(yyyyMm){
     const byMonth = settings.themeByMonth || {};
-    if (byMonth && typeof byMonth[yyyyMm] === "string") return byMonth[yyyyMm];
+    const entry = byMonth && typeof byMonth[yyyyMm] === "object" ? byMonth[yyyyMm] : null;
+    if (entry && typeof entry.stamp === "string") return entry.stamp;
     return settings.stampThemeId || DEFAULT_STAMP_THEME_ID;
+  }
+
+  function getUiThemeIdForMonth(yyyyMm){
+    const byMonth = settings.themeByMonth || {};
+    const entry = byMonth && typeof byMonth[yyyyMm] === "object" ? byMonth[yyyyMm] : null;
+    if (entry && typeof entry.ui === "string") return entry.ui;
+    return settings.uiThemeId || DEFAULT_UI_THEME_ID;
   }
 
   function applyStampTheme(themeId){
@@ -912,8 +943,9 @@
 
   function buildThemeKey(){
     const monthKey = `${YEAR}-${String(currentMonth).padStart(2,'0')}`;
-    const uiFromBuiltIn = UI_THEMES[settings.uiThemeId] ? settings.uiThemeId : null;
-    const uiFromCatalog = findCatalogTheme("ui", settings.uiThemeId);
+    const requestedUiId = getUiThemeIdForMonth(monthKey);
+    const uiFromBuiltIn = UI_THEMES[requestedUiId] ? requestedUiId : null;
+    const uiFromCatalog = findCatalogTheme("ui", requestedUiId);
     const uiThemeId = uiFromBuiltIn ? uiFromBuiltIn : (uiFromCatalog?.id || DEFAULT_UI_THEME_ID);
 
     const stampIdRaw = getStampThemeIdForMonth(monthKey);
@@ -2685,12 +2717,17 @@
     if (!selectedUiThemeId && !selectedStampThemeId) return;
     if (selectedUiThemeId){
       settings.uiThemeId = validUiThemeId(selectedUiThemeId);
+      if (!settings.themeByMonth || typeof settings.themeByMonth !== "object") settings.themeByMonth = {};
+      const monthKey = `${YEAR}-${String(currentMonth).padStart(2,"0")}`;
+      if (!settings.themeByMonth[monthKey] || typeof settings.themeByMonth[monthKey] !== "object") settings.themeByMonth[monthKey] = {};
+      settings.themeByMonth[monthKey].ui = settings.uiThemeId;
     }
     if (selectedStampThemeId){
       settings.stampThemeId = validStampThemeId(selectedStampThemeId);
       if (!settings.themeByMonth || typeof settings.themeByMonth !== "object") settings.themeByMonth = {};
       const monthKey = `${YEAR}-${String(currentMonth).padStart(2,"0")}`;
-      settings.themeByMonth[monthKey] = settings.stampThemeId;
+      if (!settings.themeByMonth[monthKey] || typeof settings.themeByMonth[monthKey] !== "object") settings.themeByMonth[monthKey] = {};
+      settings.themeByMonth[monthKey].stamp = settings.stampThemeId;
     }
     applyThemeIfNeeded();
     saveSettings(settings);
@@ -2895,6 +2932,10 @@
             return;
           }
           settings.uiThemeId = t.id || DEFAULT_UI_THEME_ID;
+          if (!settings.themeByMonth || typeof settings.themeByMonth !== "object") settings.themeByMonth = {};
+          const monthKey = `${YEAR}-${String(currentMonth).padStart(2,"0")}`;
+          if (!settings.themeByMonth[monthKey] || typeof settings.themeByMonth[monthKey] !== "object") settings.themeByMonth[monthKey] = {};
+          settings.themeByMonth[monthKey].ui = settings.uiThemeId;
           lastAppliedThemeKey = null;
           applyThemeIfNeeded();
           saveSettings(settings);
@@ -2981,7 +3022,8 @@
           settings.stampThemeId = t.id || DEFAULT_STAMP_THEME_ID;
           if (!settings.themeByMonth || typeof settings.themeByMonth !== "object") settings.themeByMonth = {};
           const monthKey = `${YEAR}-${String(currentMonth).padStart(2,"0")}`;
-          settings.themeByMonth[monthKey] = settings.stampThemeId;
+          if (!settings.themeByMonth[monthKey] || typeof settings.themeByMonth[monthKey] !== "object") settings.themeByMonth[monthKey] = {};
+          settings.themeByMonth[monthKey].stamp = settings.stampThemeId;
           lastAppliedThemeKey = null;
           applyThemeIfNeeded();
           saveSettings(settings);

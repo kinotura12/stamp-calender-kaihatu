@@ -5,43 +5,37 @@
       --surface-1:#171a21;
       --surface-2:#1c2028;
       --surface-3:rgba(255,255,255,.03);
+      --shadow-sm: 0 4px 10px rgba(0,0,0,.25);
+      --shadow-md: 0 12px 30px rgba(0,0,0,.35);
+      --shadow-lg: 0 18px 44px rgba(0,0,0,.5);
+      --shadow-stamp: 0 6px 16px rgba(0,0,0,.35);
+      --fab-inset: 48px;
+      --stamp-s: 16px;
+      --stamp-m: 24px;
+      --stamp-l: 28px;
+
       --border-subtle:rgba(255,255,255,.06);
       --border-strong:rgba(255,255,255,.12);
-
       --text-strong:#e8ecf3;
       --text-normal:#d8dde6;
       --text-muted:#a9b2c3;
       --text-mini:#8f9ab1;
       --text: var(--text-strong);  /* legacy */
       --muted: var(--text-muted);  /* legacy */
-
-      --shadow-sm: 0 4px 10px rgba(0,0,0,.25);
-      --shadow-md: 0 12px 30px rgba(0,0,0,.35);
-      --shadow-lg: 0 18px 44px rgba(0,0,0,.5);
-      --shadow-stamp: 0 6px 16px rgba(0,0,0,.35);
-      --shadow-card: var(--shadow-md);
-      --shadow-popover: var(--shadow-lg);
-
       --input-bg: rgba(0,0,0,.18);
       --input-border: rgba(255,255,255,.10);
-      --input-shadow: var(--shadow-sm);
       --box-bg: rgba(0,0,0,.18);
       --box-border: rgba(255,255,255,.10);
-      --box-shadow: var(--shadow-sm);
-
       --btn-bg: rgba(255,255,255,.06);
       --btn-fg: #e8ecf3;
       --btn-border: rgba(255,255,255,.12);
-      --btn-shadow: var(--shadow-sm);
       --btn-danger-bg: rgba(255,120,120,.12);
       --btn-danger-border: rgba(255,140,140,.25);
       --btn-danger-fg: #ffc8c8;
       --btn-danger-shadow: var(--shadow-sm);
-
       --pill-bg: rgba(255,255,255,.06);
       --pill-border: rgba(255,255,255,.12);
       --pill-fg: rgba(232,236,243,.85);
-
       --accent:#62c7ff;
       --accent-2:#ff6fae;
       --success:#6ee38b;
@@ -49,7 +43,6 @@
       --danger:#ff6b6b;
       --info:#4a9ded;
       --link:#4a9ded;
-
       --ring: rgba(255,255,255,.16);
       --page-bg: radial-gradient(1100px 700px at 20% 0%, color-mix(in srgb, var(--accent) 30%, var(--bg)) 0%, var(--bg) 60%);
       --header-bg: color-mix(in srgb, var(--bg) 65%, transparent);
@@ -61,11 +54,8 @@
       --mood-3:#ffd55a;
       --mood-4:#6ee38b;
       --mood-5:#62c7ff;
-
       --stamp-ring: var(--ring);
-      --stamp-s: 16px;
-      --stamp-m: 24px;
-      --stamp-l: 28px;
+
       /* legacy mappings */
       --panel: var(--surface-1);
       --card: var(--surface-2);
@@ -75,9 +65,6 @@
     }
 
     /* TOKENS */
-    :root{
-      --fab-inset: 48px;
-    }
     .fab{
       position: fixed;
       left: 0;
@@ -374,19 +361,14 @@
       --shadow-md: 0 8px 20px rgba(0,0,0,.08);
       --shadow-lg: 0 12px 26px rgba(0,0,0,.14);
       --shadow-stamp: 0 6px 14px rgba(0,0,0,.18);
-      --shadow-card: var(--shadow-md);
-      --shadow-popover: var(--shadow-lg);
 
       --input-bg: #ffffff;
       --input-border: rgba(0,0,0,.08);
-      --input-shadow: var(--shadow-sm);
       --box-bg: #ffffff;
       --box-border: rgba(0,0,0,.08);
-      --box-shadow: var(--shadow-sm);
       --btn-bg: #f3f7fb;
       --btn-fg: #3a4558;
       --btn-border: rgba(0,0,0,.08);
-      --btn-shadow: var(--shadow-sm);
       --btn-danger-bg: #ffe8e8;
       --btn-danger-border: rgba(220,70,70,.25);
       --btn-danger-fg: #b03030;
@@ -1929,5 +1911,6 @@
       .goalPreview.show{ display:-webkit-box; }
       .cell{ height: 96px; }
     }
+
 
 
