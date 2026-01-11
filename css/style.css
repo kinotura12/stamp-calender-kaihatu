@@ -52,13 +52,13 @@
 
       --ring: rgba(255,255,255,.16);
 
-      /* palette (残す) */
-      --pink:#ff6fae;
-      --orange:#ff9a4a;
-      --yellow:#ffd55a;
-      --green:#6ee38b;
-      --blue:#62c7ff;
+      --mood-1:#ff6fae;
+      --mood-2:#ff9a4a;
+      --mood-3:#ffd55a;
+      --mood-4:#6ee38b;
+      --mood-5:#62c7ff;
 
+      --stamp-ring: var(--ring);
       /* legacy mappings */
       --panel: var(--surface-1);
       --card: var(--surface-2);
@@ -118,11 +118,11 @@
 
       --ring: rgba(255,255,255,.16);
 
-      --pink:#ff6fae;
-      --orange:#ff9a4a;
-      --yellow:#ffd55a;
-      --green:#6ee38b;
-      --blue:#62c7ff;
+      --mood-1:#ff6fae;
+      --mood-2:#ff9a4a;
+      --mood-3:#ffd55a;
+      --mood-4:#6ee38b;
+      --mood-5:#62c7ff;
 
       --panel: var(--surface-1);
       --card: var(--surface-2);
@@ -179,11 +179,11 @@
       --link:#4a9ded;
 
       --ring: rgba(0,0,0,.08);
-      --pink:#e0569c;
-      --orange:#ff8a3c;
-      --yellow:#e9ba3c;
-      --green:#46b86f;
-      --blue:#4a9ded;
+      --mood-1:#e0569c;
+      --mood-2:#ff8a3c;
+      --mood-3:#e9ba3c;
+      --mood-4:#46b86f;
+      --mood-5:#4a9ded;
 
       --panel: var(--surface-1);
       --card: var(--surface-2);
@@ -338,8 +338,8 @@
       width: 54px;
       height: 54px;
       border-radius: 999px;
-      border: 2px solid var(--ring);
-      background: var(--fab-color, var(--pink));
+      border: 2px solid var(--stamp-ring);
+      background: var(--fab-color, var(--mood-1));
       color: color-mix(in srgb, var(--surface-2) 80%, transparent);
       box-shadow: var(--shadow-stamp);
       display:flex;
@@ -518,7 +518,7 @@
       width: var(--stamp-l);
       height: var(--stamp-l);
       border-radius: 999px;
-      border: 2px solid var(--ring);
+      border: 2px solid var(--stamp-ring);
       box-shadow: var(--shadow-stamp);
       cursor: pointer;
       --pick-ty: 0px;
@@ -604,18 +604,18 @@
       width: var(--stamp-m);
       height: var(--stamp-m);
       border-radius: 999px;
-      border: 2px solid var(--ring);
+      border: 2px solid var(--stamp-ring);
       background: transparent;
       cursor: pointer;
       transition: transform .08s ease;
     }
     .dot:active{ transform: scale(.95); }
-    .dot.filled{ border-color: var(--ring); box-shadow: var(--shadow-sm); }
-    .dot.pink{ background: var(--pink); }
-    .dot.orange{ background: var(--orange); }
-    .dot.yellow{ background: var(--yellow); }
-    .dot.green{ background: var(--green); }
-    .dot.blue{ background: var(--blue); }
+    .dot.filled{ border-color: var(--stamp-ring); box-shadow: var(--shadow-sm); }
+    .dot.mood_1{ background: var(--mood-1); }
+    .dot.mood_2{ background: var(--mood-2); }
+    .dot.mood_3{ background: var(--mood-3); }
+    .dot.mood_4{ background: var(--mood-4); }
+    .dot.mood_5{ background: var(--mood-5); }
 
     /* ===== color picker popup (with title) ===== */
     .picker{
@@ -645,7 +645,7 @@
     .pickerTitle .miniDot{
       width: 10px; height: 10px;
       border-radius: 999px;
-      border: 2px solid var(--ring);
+      border: 2px solid var(--stamp-ring);
       opacity: .85;
     }
 
@@ -659,17 +659,17 @@
       width: var(--stamp-m);
       height: var(--stamp-m);
       border-radius: 999px;
-      border: 2px solid var(--ring);
+      border: 2px solid var(--stamp-ring);
       box-shadow: var(--shadow-md);
       cursor: pointer;
       transition: transform .08s ease, opacity .12s ease;
     }
     .pick:active{ transform: translateY(1px) scale(.98); }
-    .pick.pink{ background: var(--pink); }
-    .pick.orange{ background: var(--orange); }
-    .pick.yellow{ background: var(--yellow); }
-    .pick.green{ background: var(--green); }
-    .pick.blue{ background: var(--blue); }
+    .pick.mood_1{ background: var(--mood-1); }
+    .pick.mood_2{ background: var(--mood-2); }
+    .pick.mood_3{ background: var(--mood-3); }
+    .pick.mood_4{ background: var(--mood-4); }
+    .pick.mood_5{ background: var(--mood-5); }
     .shape-circle{ border-radius: 999px !important; clip-path: none; }
     .shape-rounded{ border-radius: 10px !important; clip-path: none; }
     .shape-diamond{ border-radius: 0 !important; clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); }
@@ -859,7 +859,7 @@
       width: 14px;
       height: 14px;
       border-radius: 999px;
-      background: var(--pink);
+      background: var(--mood-1);
       position: absolute;
       right: 6px;
       bottom: 6px;
@@ -900,7 +900,7 @@
       width: 14px;
       height: 14px;
       border-radius: 999px;
-      background: var(--pink);
+      background: var(--mood-1);
       border: 2px solid var(--card-border);
       box-shadow: var(--shadow-sm);
     }
@@ -912,13 +912,14 @@
       width: 12px;
       height: 12px;
       border-radius: 999px;
-      background: var(--pink);
+      background: var(--mood-1);
       box-shadow: var(--shadow-sm);
     }
-    .thumbMoodDot.orange{ background: var(--orange); }
-    .thumbMoodDot.yellow{ background: var(--yellow); }
-    .thumbMoodDot.green{ background: var(--green); }
-    .thumbMoodDot.blue{ background: var(--blue); }
+    .thumbMoodDot.mood_1{ background: var(--mood-1); }
+    .thumbMoodDot.mood_2{ background: var(--mood-2); }
+    .thumbMoodDot.mood_3{ background: var(--mood-3); }
+    .thumbMoodDot.mood_4{ background: var(--mood-4); }
+    .thumbMoodDot.mood_5{ background: var(--mood-5); }
     .thumbField{
       border-radius: 8px;
       background: var(--input-bg);
@@ -1193,19 +1194,19 @@
     .diaryStamp{
       width: 18px; height: 18px;
       border-radius: 999px;
-      border: 2px solid var(--ring);
+      border: 2px solid var(--stamp-ring);
       background: transparent;
       flex: 0 0 auto;
       cursor: pointer;
       transition: transform .08s ease;
     }
     .diaryStamp:active{ transform: scale(.95); }
-    .diaryStamp.filled{ border-color: var(--ring); box-shadow: var(--shadow-sm); }
-    .diaryStamp.pink{ background: var(--pink); }
-    .diaryStamp.orange{ background: var(--orange); }
-    .diaryStamp.yellow{ background: var(--yellow); }
-    .diaryStamp.green{ background: var(--green); }
-    .diaryStamp.blue{ background: var(--blue); }
+    .diaryStamp.filled{ border-color: var(--stamp-ring); box-shadow: var(--shadow-sm); }
+    .diaryStamp.mood_1{ background: var(--mood-1); }
+    .diaryStamp.mood_2{ background: var(--mood-2); }
+    .diaryStamp.mood_3{ background: var(--mood-3); }
+    .diaryStamp.mood_4{ background: var(--mood-4); }
+    .diaryStamp.mood_5{ background: var(--mood-5); }
 
     .diaryLabel{ font-size: 12px; color: var(--muted); }
     .diaryDate{ font-size: 16px; font-weight: 700; letter-spacing: .02em; margin-top: 2px; }
@@ -1468,18 +1469,18 @@
       width: 34px;
       height: 34px;
       border-radius: 999px;
-      border: 2px solid var(--ring);
+      border: 2px solid var(--stamp-ring);
       cursor:pointer;
       box-shadow: var(--shadow-stamp);
       transition: transform .08s ease, opacity .14s ease;
       background: transparent;
     }
     .moodPick:active{ transform: translateY(1px) scale(.98); }
-    .moodPick.pink{ background: var(--pink); }
-    .moodPick.orange{ background: var(--orange); }
-    .moodPick.yellow{ background: var(--yellow); }
-    .moodPick.green{ background: var(--green); }
-    .moodPick.blue{ background: var(--blue); }
+    .moodPick.mood_1{ background: var(--mood-1); }
+    .moodPick.mood_2{ background: var(--mood-2); }
+    .moodPick.mood_3{ background: var(--mood-3); }
+    .moodPick.mood_4{ background: var(--mood-4); }
+    .moodPick.mood_5{ background: var(--mood-5); }
     .moodRow.hasSelection .moodPick{ opacity: .35; }
     .moodRow.hasSelection .moodPick.isSelected{ opacity: 1; outline: 2px solid var(--border-subtle); }
 
@@ -1529,16 +1530,16 @@
     .miniStamp{
       width: 14px; height: 14px;
       border-radius: 999px;
-      border: 2px solid var(--ring);
+      border: 2px solid var(--stamp-ring);
       background: transparent;
       flex: 0 0 auto;
     }
-    .miniStamp.filled{ border-color: var(--ring); }
-    .miniStamp.pink{ background: var(--pink); }
-    .miniStamp.orange{ background: var(--orange); }
-    .miniStamp.yellow{ background: var(--yellow); }
-    .miniStamp.green{ background: var(--green); }
-    .miniStamp.blue{ background: var(--blue); }
+    .miniStamp.filled{ border-color: var(--stamp-ring); }
+    .miniStamp.mood_1{ background: var(--mood-1); }
+    .miniStamp.mood_2{ background: var(--mood-2); }
+    .miniStamp.mood_3{ background: var(--mood-3); }
+    .miniStamp.mood_4{ background: var(--mood-4); }
+    .miniStamp.mood_5{ background: var(--mood-5); }
 
     .listDate{
       font-weight: 700;
@@ -2099,3 +2100,5 @@
     :root[data-ui-theme="ui_light_default"] .themePanel{
       color: var(--text-strong);
     }
+
+

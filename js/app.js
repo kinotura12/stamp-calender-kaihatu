@@ -21,11 +21,11 @@
       basePath: "",
       hash: "",
       stamps: [
-        { mood: "mood_1", label: "Mood 1", className: "pink", color: "#ff6fae" },
-        { mood: "mood_2", label: "Mood 2", className: "orange", color: "#ff9a4a" },
-        { mood: "mood_3", label: "Mood 3", className: "yellow", color: "#ffd55a" },
-        { mood: "mood_4", label: "Mood 4", className: "green", color: "#6ee38b" },
-        { mood: "mood_5", label: "Mood 5", className: "blue", color: "#62c7ff" },
+        { mood: "mood_1", label: "Mood 1", className: "mood_1", color: "#ff6fae" },
+        { mood: "mood_2", label: "Mood 2", className: "mood_2", color: "#ff9a4a" },
+        { mood: "mood_3", label: "Mood 3", className: "mood_3", color: "#ffd55a" },
+        { mood: "mood_4", label: "Mood 4", className: "mood_4", color: "#6ee38b" },
+        { mood: "mood_5", label: "Mood 5", className: "mood_5", color: "#62c7ff" },
       ]
     },
     dark_moods: {
@@ -110,11 +110,11 @@
         "--info":"#4a9ded",
         "--link":"#4a9ded",
         "--ring":"rgba(255,255,255,.16)",
-        "--pink":"#ff6fae",
-        "--orange":"#ff9a4a",
-        "--yellow":"#ffd55a",
-        "--green":"#6ee38b",
-        "--blue":"#62c7ff",
+        "--mood-1":"#ff6fae",
+        "--mood-2":"#ff9a4a",
+        "--mood-3":"#ffd55a",
+        "--mood-4":"#6ee38b",
+        "--mood-5":"#62c7ff",
         "--panel":"#171a21",
         "--card":"#1c2028",
         "--card2":"rgba(255,255,255,.03)",
@@ -171,11 +171,11 @@
         "--info":"#4a9ded",
         "--link":"#4a9ded",
         "--ring":"rgba(0,0,0,.08)",
-        "--pink":"#e0569c",
-        "--orange":"#ff8a3c",
-        "--yellow":"#e9ba3c",
-        "--green":"#46b86f",
-        "--blue":"#4a9ded",
+        "--mood-1":"#e0569c",
+        "--mood-2":"#ff8a3c",
+        "--mood-3":"#e9ba3c",
+        "--mood-4":"#46b86f",
+        "--mood-5":"#4a9ded",
         "--panel":"#ffffff",
         "--card":"#ffffff",
         "--card2":"rgba(0,0,0,.02)",
@@ -198,7 +198,7 @@
     "--pill-bg","--pill-border","--pill-fg",
     "--accent","--accent-2","--success","--warning","--danger","--info","--link",
     "--ring",
-    "--pink","--orange","--yellow","--green","--blue",
+    "--mood-1","--mood-2","--mood-3","--mood-4","--mood-5",
     "--panel","--card","--card2","--card-border","--card-shadow",
   ];
   const UI_TOKEN_SET = new Set(UI_TOKEN_KEYS);
@@ -338,19 +338,6 @@
 
   // ===== Domain =====
   // -- Public --
-  const LEGACY_STAMP_ID_MAP = {
-    dot_pink: "mood_1",
-    dot_orange: "mood_2",
-    dot_yellow: "mood_3",
-    dot_green: "mood_4",
-    dot_blue: "mood_5",
-    pink: "mood_1",
-    orange: "mood_2",
-    yellow: "mood_3",
-    green: "mood_4",
-    blue: "mood_5"
-  };
-
   // Diary Blocks: templates (今は骨格)
   // “instanceId” を持つ設計にして、将来同種ブロック複数に対応できる形にしておく。
   const BLOCK_TEMPLATES = {
@@ -375,7 +362,6 @@
   function normalizeStampId(stampId){
     if (!stampId) return null;
     if (STAMP_MOODS.includes(stampId)) return stampId;
-    if (LEGACY_STAMP_ID_MAP[stampId]) return LEGACY_STAMP_ID_MAP[stampId];
     return null;
   }
   function normalizeStampEvent(raw){
@@ -650,11 +636,11 @@
 
   function resolveFabColorValue(entry){
     const paletteMap = {
-      pink: "var(--pink)",
-      orange: "var(--orange)",
-      yellow: "var(--yellow)",
-      green: "var(--green)",
-      blue: "var(--blue)"
+      mood_1: "var(--mood-1)",
+      mood_2: "var(--mood-2)",
+      mood_3: "var(--mood-3)",
+      mood_4: "var(--mood-4)",
+      mood_5: "var(--mood-5)"
     };
     if (entry && entry.color) return entry.color;
     if (entry && entry.className && paletteMap[entry.className]) return paletteMap[entry.className];
@@ -665,7 +651,7 @@
     if (fallbackEntry && fallbackEntry.className && paletteMap[fallbackEntry.className]){
       return paletteMap[fallbackEntry.className];
     }
-    return "var(--pink)";
+    return "var(--mood-1)";
   }
   function applyFabColorFromStampTheme(){
     if (!fabStampBtn) return;
