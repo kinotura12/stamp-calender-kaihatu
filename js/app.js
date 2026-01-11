@@ -840,7 +840,6 @@
 
   function applyStampTheme(themeId){
     const { id, byMood, basePath } = resolveStampTheme(themeId || settings.stampThemeId);
-    settings.stampThemeId = id;
     resolvedStampTheme = { id, byMood, basePath };
     renderStampPickerButtons();
     applyFabColorFromStampTheme();
@@ -878,12 +877,10 @@
   function applyUiThemeFromCatalog(theme){
     applyThemeTokensFromCatalog(theme?.cssVars, document.documentElement);
     if (theme?.id) document.documentElement.setAttribute("data-ui-theme", theme.id);
-    settings.uiThemeId = theme?.id || DEFAULT_UI_THEME_ID;
   }
 
   function applyUiTheme(themeId){
     const { id } = applyThemeTokens(themeId || settings.uiThemeId);
-    settings.uiThemeId = id;
   }
 
   let lastAppliedThemeKey = null;
@@ -907,8 +904,7 @@
         shape: fromDef.shape || "circle"
       });
     }
-    settings.stampThemeId = theme.id || DEFAULT_STAMP_THEME_ID;
-    resolvedStampTheme = { id: settings.stampThemeId, byMood, basePath: theme.assets?.basePath || "" };
+    resolvedStampTheme = { id: theme.id || DEFAULT_STAMP_THEME_ID, byMood, basePath: theme.assets?.basePath || "" };
     renderStampPickerButtons();
     applyFabColorFromStampTheme();
     if (fabBubble && fabBubble.classList.contains("show")) renderFabBubble();
@@ -936,7 +932,6 @@
     } else if (uiFromCatalog){
       applyThemeTokensFromCatalog(uiFromCatalog.cssVars, document.documentElement);
       document.documentElement.setAttribute("data-ui-theme", uiThemeId);
-      settings.uiThemeId = uiThemeId;
     } else {
       applyUiTheme(DEFAULT_UI_THEME_ID);
     }
@@ -2899,8 +2894,9 @@
             renderStore();
             return;
           }
-          applyUiThemeFromCatalog(t);
+          settings.uiThemeId = t.id || DEFAULT_UI_THEME_ID;
           lastAppliedThemeKey = null;
+          applyThemeIfNeeded();
           saveSettings(settings);
           renderCalendar();
           if (selectedDate){
@@ -2982,8 +2978,12 @@
             renderStore();
             return;
           }
-          applyStampThemeFromCatalog(t);
+          settings.stampThemeId = t.id || DEFAULT_STAMP_THEME_ID;
+          if (!settings.themeByMonth || typeof settings.themeByMonth !== "object") settings.themeByMonth = {};
+          const monthKey = `${YEAR}-${String(currentMonth).padStart(2,"0")}`;
+          settings.themeByMonth[monthKey] = settings.stampThemeId;
           lastAppliedThemeKey = null;
+          applyThemeIfNeeded();
           saveSettings(settings);
           renderCalendar();
           if (selectedDate){
