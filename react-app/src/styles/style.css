@@ -620,7 +620,8 @@
     }
 
     /* VIEWS: calendar */
-    .days{
+    .days,
+    .calendar__grid{
       display:grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 8px;
@@ -628,7 +629,8 @@
     }
 
     /* ===== calendar cell ===== */
-    .cell{
+    .cell,
+    .calendar__cell{
       position: relative;
       border-radius: 14px;
       border: 1px solid var(--border-subtle);
@@ -639,16 +641,19 @@
       user-select: none;
       height: 86px;
     }
-    .cell.empty{
+    .cell.empty,
+    .calendar__cell.is-empty{
       opacity: .25;
       cursor: default;
     }
-    .cell.selected{
+    .cell.selected,
+    .calendar__cell.is-selected{
       outline: 2px solid color-mix(in srgb, var(--ring) 70%, transparent);
       background: color-mix(in srgb, var(--surface-3) 60%, transparent);
     }
 
-    .daynum{
+    .daynum,
+    .calendar__daynum{
       font-size: 12px;
       color: var(--muted);
       line-height: 1;
@@ -675,7 +680,9 @@
     }
 
     /* ===== stamp dot in calendar cell ===== */
-    .dot{
+    .dot,
+    .calendar__dot,
+    .stamp{
       position:absolute;
       right: 8px;
       bottom: 8px;
@@ -687,13 +694,27 @@
       cursor: pointer;
       transition: transform .08s ease;
     }
-    .dot:active{ transform: scale(.95); }
-    .dot.filled{ border-color: var(--stamp-ring); box-shadow: var(--shadow-sm); }
-    .dot.mood_1{ background: var(--mood-1); }
-    .dot.mood_2{ background: var(--mood-2); }
-    .dot.mood_3{ background: var(--mood-3); }
-    .dot.mood_4{ background: var(--mood-4); }
-    .dot.mood_5{ background: var(--mood-5); }
+    .dot:active,
+    .calendar__dot:active,
+    .stamp:active{ transform: scale(.95); }
+    .dot.filled,
+    .calendar__dot.is-filled,
+    .stamp--filled{ border-color: var(--stamp-ring); box-shadow: var(--shadow-sm); }
+    .dot.mood_1,
+    .calendar__dot.is-mood-1,
+    .stamp--mood-1{ background: var(--mood-1); }
+    .dot.mood_2,
+    .calendar__dot.is-mood-2,
+    .stamp--mood-2{ background: var(--mood-2); }
+    .dot.mood_3,
+    .calendar__dot.is-mood-3,
+    .stamp--mood-3{ background: var(--mood-3); }
+    .dot.mood_4,
+    .calendar__dot.is-mood-4,
+    .stamp--mood-4{ background: var(--mood-4); }
+    .dot.mood_5,
+    .calendar__dot.is-mood-5,
+    .stamp--mood-5{ background: var(--mood-5); }
 
     /* ===== color picker popup (with title) ===== */
     .picker{
@@ -777,12 +798,14 @@
 
     /* VIEWS: diary */
     /* ===== diary + customize wrapper (slide) ===== */
-    .diaryWrap{
+    .diaryWrap,
+    .diary{
       position: relative;
       margin-top: 12px;
       border-radius: 16px;
     }
-    .slider{
+    .slider,
+    .diary__slider{
       display:flex;
       width: 300%;
       transition: transform .22s ease;
@@ -791,7 +814,8 @@
     .slider.customize{ transform: translateX(-33.333%); }
     .slider.logDetail{ transform: translateX(-66.666%); }
 
-    .panel{
+    .panel,
+    .diary__panel{
       width: 33.333%;
       background: var(--card);
       border: 1px solid var(--card-border);
@@ -803,24 +827,28 @@
       pointer-events: none;
       color: var(--text-strong);
     }
-    .panel.show{
+    .panel.show,
+    .diary__panel.is-open{
       visibility: visible;
       pointer-events: auto;
     }
 
-    .diaryHead{
+    .diaryHead,
+    .diary__header{
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
       gap:12px;
       margin-bottom: 10px;
     }
-    .diaryHeadLeft{
+    .diaryHeadLeft,
+    .diary__headerLeft{
       display:flex;
       align-items:center;
       gap:10px;
     }
-    .diaryStamp{
+    .diaryStamp,
+    .diary__stamp{
       width: 18px; height: 18px;
       border-radius: 999px;
       border: 2px solid var(--stamp-ring);
@@ -837,10 +865,13 @@
     .diaryStamp.mood_4{ background: var(--mood-4); }
     .diaryStamp.mood_5{ background: var(--mood-5); }
 
-    .diaryLabel{ font-size: 12px; color: var(--muted); }
-    .diaryDate{ font-size: 16px; font-weight: 700; letter-spacing: .02em; margin-top: 2px; }
+    .diaryLabel,
+    .diary__label{ font-size: 12px; color: var(--muted); }
+    .diaryDate,
+    .diary__date{ font-size: 16px; font-weight: 700; letter-spacing: .02em; margin-top: 2px; }
 
-    .headBtns{
+    .headBtns,
+    .diary__actions{
       display:flex;
       gap: 8px;
       align-items:center;
@@ -862,7 +893,8 @@
     .iconBtn:active{ transform: translateY(1px); }
     .iconBtn svg{ width: 18px; height: 18px; opacity:.9; }
 
-    .inlineConfirm{
+    .inlineConfirm,
+    .diary__confirm{
       display:none;
       margin: 6px 0 10px;
       padding: 10px;
@@ -872,37 +904,117 @@
       box-shadow: var(--box-shadow);
     }
     .inlineConfirm.show{ display:block; }
-    .inlineConfirmMsg{
+    .inlineConfirmMsg,
+    .diary__confirmMsg{
       font-size: 13px;
       color: var(--text-normal);
       margin-bottom: 10px;
       line-height: 1.5;
     }
-    .inlineConfirmBtns{
+    .inlineConfirmBtns,
+    .diary__confirmActions{
       display:flex;
       gap: 10px;
       justify-content:flex-end;
     }
 
-    .section{
+    .section,
+    .diary__section{
       margin-top: 12px;
       padding-top: 10px;
       border-top: 1px solid var(--border-subtle);
     }
-    .section:first-of-type{
+    .section:first-of-type,
+    .diary__section:first-of-type{
       margin-top: 6px;
       padding-top: 0;
       border-top: none;
     }
-    .sectionHead{
+    .sectionHead,
+    .diary__sectionHead{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap: 10px;
       margin-bottom: 8px;
     }
-    .sectionTitle{ font-size: 12px; color: var(--muted); display:flex; align-items:center; gap:8px; }
+    .sectionTitle,
+    .diary__sectionTitle{ font-size: 12px; color: var(--muted); display:flex; align-items:center; gap:8px; }
     .chip{ display:none; }
+
+    .uiLabPanel{
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      background: var(--card);
+      box-shadow: var(--card-shadow);
+    }
+    .uiLabHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .uiLab__head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .uiLabTitle{
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      color: var(--text-normal);
+    }
+    .uiLab__title{
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      color: var(--text-normal);
+    }
+    .uiLabRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      align-items:center;
+    }
+    .uiLab__row{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      align-items:center;
+    }
+    .uiLabField{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .uiLab__field{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+
+    .tagChip{
+      font-size: 11px;
+      color: var(--text-normal);
+      border: 1px solid var(--pill-border);
+      background: var(--pill-bg);
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .toggle{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      color: var(--text-normal);
+      font-size: 12px;
+    }
     .diaryLogHead{
       display:flex;
       align-items:center;
@@ -944,8 +1056,10 @@
       font-size: 13px;
       color: var(--text-normal);
     }
-    .diaryLogCount{ font-size: 12px; color: var(--text-mini); }
-    .diaryLogBody{
+    .diaryLogCount,
+    .diary__logCount{ font-size: 12px; color: var(--text-mini); }
+    .diaryLogBody,
+    .diary__logBody{
       display:flex;
       flex-direction:column;
       gap: 6px;
@@ -953,15 +1067,30 @@
       color: var(--text-normal);
     }
     .diaryLogEmpty{ color: var(--text-mini); }
-    .diaryLogItem{
+    .diaryLogItem,
+    .diary__logItem{
       display:flex;
       gap: 10px;
       align-items:center;
     }
-    .diaryLogTime{
+    .diaryLogTime,
+    .diary__logTime{
       font-variant-numeric: tabular-nums;
       color: var(--text-mini);
       min-width: 52px;
+    }
+
+    .uiLabRow,
+    .stampRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      align-items:center;
+    }
+    .formRow{
+      display:flex;
+      align-items:center;
+      gap: 8px;
     }
 
     input.goal{
